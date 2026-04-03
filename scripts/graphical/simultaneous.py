@@ -37,6 +37,20 @@ total_datasets = 2
 
 dataset_path = path.join("dataset", "example_1d")
 
+"""
+__Dataset Auto-Simulation__
+
+If the dataset does not already exist on your system, it will be created by running the corresponding
+simulator script. This ensures that all example scripts can be run without manually simulating data first.
+"""
+if not path.exists(dataset_path):
+    import subprocess
+    import sys
+    subprocess.run(
+        [sys.executable, "scripts/simulators/simulators.py"],
+        check=True,
+    )
+
 dataset_name_list = []
 data_list = []
 noise_map_list = []
