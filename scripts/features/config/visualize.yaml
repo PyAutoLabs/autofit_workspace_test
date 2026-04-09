@@ -12,15 +12,6 @@ plots_search:
     likelihood_series: true
     time_series: true
     trajectories: true
-  pyswarms:
-    contour: true
-    cost_history: true
-    time_series: true
-    trajectories: true
-  ultranest:
-    corner: true
-    runplot: true
-    traceplot: true
   zeus:
     corner: true
     likelihood_series: true
