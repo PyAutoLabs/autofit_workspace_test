@@ -18,4 +18,17 @@ defaults:
   NUMBA_CACHE_DIR: "/tmp/numba_cache"   # Writable cache dir for numba
   MPLCONFIGDIR: "/tmp/matplotlib"       # Writable config dir for matplotlib
 
-overrides: []
+overrides:
+  # Aggregator / database / minimal-output scripts assert `len(agg) > 0`.
+  # They need a real sampler run; PYAUTOFIT_TEST_MODE=2 would bypass the
+  # sampler and leave the aggregator empty, failing the assertion.
+  - pattern: "database/directory/general"
+    unset: [PYAUTOFIT_TEST_MODE]
+  - pattern: "database/directory/multi_analysis"
+    unset: [PYAUTOFIT_TEST_MODE]
+  - pattern: "database/scrape/general"
+    unset: [PYAUTOFIT_TEST_MODE]
+  - pattern: "database/scrape/multi_analysis"
+    unset: [PYAUTOFIT_TEST_MODE]
+  - pattern: "features/minimal_output"
+    unset: [PYAUTOFIT_TEST_MODE]
