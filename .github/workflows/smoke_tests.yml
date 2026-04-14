@@ -58,6 +58,7 @@ jobs:
         else
           pip install ./PyAutoConf ./PyAutoFit
         fi
+        pip install nautilus-sampler
     - name: Prepare cache dirs
       run: |
         mkdir -p /tmp/numba_cache /tmp/matplotlib
