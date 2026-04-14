@@ -1,0 +1,9 @@
+# searches/Emcee.py  # disabled: median_pdf TypeError on Python 3.13 + numpy 2.4 (0-dim array to scalar) — see admin_jammy/prompt/build/smoke_workspace_fixes.md
+searches/DynestyStatic.py
+searches/Nautilus.py
+features/minimal_output.py
+features/latent.py
+features/assertion.py
+database/scrape/general.py
+database/directory/general.py
+model_composition/model_composition.py
