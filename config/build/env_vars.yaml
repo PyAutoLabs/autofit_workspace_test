@@ -9,7 +9,7 @@
 #   - Patterns without '/' match the file stem exactly
 
 defaults:
-  PYAUTOFIT_TEST_MODE: "2"              # 0=normal, 1=reduced iterations, 2=skip sampler (fastest)
+  PYAUTO_TEST_MODE: "2"              # 0=normal, 1=reduced iterations, 2=skip sampler (fastest)
   PYAUTO_WORKSPACE_SMALL_DATASETS: "1"  # Cap grids/masks to 15x15, reduce MGE gaussians
   PYAUTO_DISABLE_JAX: "1"              # Force use_jax=False, avoid JIT compilation overhead
   PYAUTO_FAST_PLOTS: "1"               # Skip tight_layout() + critical curve/caustic overlays
@@ -19,15 +19,15 @@ defaults:
 
 overrides:
   # Aggregator / database / minimal-output scripts assert `len(agg) > 0`.
-  # They need a real sampler run; PYAUTOFIT_TEST_MODE=2 would bypass the
+  # They need a real sampler run; PYAUTO_TEST_MODE=2 would bypass the
   # sampler and leave the aggregator empty, failing the assertion.
   - pattern: "database/directory/general"
-    unset: [PYAUTOFIT_TEST_MODE]
+    unset: [PYAUTO_TEST_MODE]
   - pattern: "database/directory/multi_analysis"
-    unset: [PYAUTOFIT_TEST_MODE]
+    unset: [PYAUTO_TEST_MODE]
   - pattern: "database/scrape/general"
-    unset: [PYAUTOFIT_TEST_MODE]
+    unset: [PYAUTO_TEST_MODE]
   - pattern: "database/scrape/multi_analysis"
-    unset: [PYAUTOFIT_TEST_MODE]
+    unset: [PYAUTO_TEST_MODE]
   - pattern: "features/minimal_output"
-    unset: [PYAUTOFIT_TEST_MODE]
+    unset: [PYAUTO_TEST_MODE]

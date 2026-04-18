@@ -25,7 +25,7 @@ output/                      Model-fit results written here at runtime
 
 ## Running Tests
 
-Scripts are run from the repository root **without** `PYAUTOFIT_TEST_MODE=1` — the non-linear searches run for real (using sampler limits like `n_like_max` to keep runtimes short):
+Scripts are run from the repository root **without** `PYAUTO_TEST_MODE=1` — the non-linear searches run for real (using sampler limits like `n_like_max` to keep runtimes short):
 
 ```bash
 python scripts/imaging/model_fit.py

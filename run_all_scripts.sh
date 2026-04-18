@@ -19,7 +19,7 @@ while IFS= read -r script; do
     logname="${relpath//\//__}"
     logname="${logname%.py}.txt"
 
-    output=$(PYAUTOFIT_TEST_MODE=1 python "$script" 2>&1)
+    output=$(PYAUTO_TEST_MODE=1 python "$script" 2>&1)
     exitcode=$?
 
     if [[ $exitcode -ne 0 ]]; then
