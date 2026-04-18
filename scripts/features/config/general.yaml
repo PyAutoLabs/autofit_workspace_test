@@ -23,7 +23,6 @@ parallel:
   warn_environment_variables: true
 profiling:
   parallel_profile: false
-  should_profile: false
   repeats: 1
 test:
   check_preloads: false
