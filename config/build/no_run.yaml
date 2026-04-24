@@ -17,6 +17,5 @@
 #   banner. Investigate the failure, fix the underlying bug, and remove
 #   the NEEDS_FIX marker.
 
-- Drawer # Only works with sensitivity mapper to not raise InitializerException.
 - session/general # Session mostly works but not maintaining currently.
 - session/multi_analysis # Session mostly works but not maintaining currently.

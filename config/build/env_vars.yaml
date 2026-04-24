@@ -31,3 +31,9 @@ overrides:
     unset: [PYAUTO_TEST_MODE]
   - pattern: "features/minimal_output"
     unset: [PYAUTO_TEST_MODE]
+  # Model assertion scripts define inequality constraints between parameters
+  # (e.g. gaussian_0.centre > gaussian_1.centre). Bypass mode uses a midpoint
+  # unit vector so both parameters get identical values, violating the
+  # assertion and raising FitException before the likelihood is called.
+  - pattern: "features/assertion"
+    unset: [PYAUTO_TEST_MODE]
