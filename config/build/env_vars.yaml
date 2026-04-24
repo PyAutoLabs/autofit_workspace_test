@@ -32,8 +32,11 @@ overrides:
   - pattern: "features/minimal_output"
     unset: [PYAUTO_TEST_MODE]
   # Model assertion scripts define inequality constraints between parameters
-  # (e.g. gaussian_0.centre > gaussian_1.centre). Bypass mode uses a midpoint
-  # unit vector so both parameters get identical values, violating the
-  # assertion and raising FitException before the likelihood is called.
+  # (e.g. gaussian_0.centre > gaussian_1.centre). Bypass mode (TEST_MODE=2)
+  # uses a midpoint unit vector so both parameters get identical values,
+  # violating the assertion and raising FitException before the likelihood
+  # is called. Run with no test mode (real sampler) instead — TEST_MODE=1
+  # reduces iterations but can leave assertion-violating samples in the
+  # posterior that then crash compute_latent_variables post-fit.
   - pattern: "features/assertion"
     unset: [PYAUTO_TEST_MODE]
