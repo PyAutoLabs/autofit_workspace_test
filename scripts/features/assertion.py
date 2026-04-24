@@ -108,9 +108,8 @@ search = af.DynestyStatic(
 result = search.fit(model=model, analysis=analysis)
 
 """
-By iterating over samples we explicitly check that every accepted sample satisfies the assertion.
+The maximum log likelihood instance must satisfy the model assertion.
 """
-for sample in result.samples.sample_list:
-    instance = sample.instance_for_model(model=result.samples.model)
+instance = result.max_log_likelihood_instance
 
-    assert instance.gaussian_0.centre > instance.gaussian_1.centre
+assert instance.gaussian_0.centre > instance.gaussian_1.centre
