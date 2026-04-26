@@ -35,8 +35,10 @@ overrides:
   # (e.g. gaussian_0.centre > gaussian_1.centre). Bypass mode (TEST_MODE=2)
   # uses a midpoint unit vector so both parameters get identical values,
   # violating the assertion and raising FitException before the likelihood
-  # is called. Run with no test mode (real sampler) instead — TEST_MODE=1
-  # reduces iterations but can leave assertion-violating samples in the
-  # posterior that then crash compute_latent_variables post-fit.
+  # is called. Use TEST_MODE=1 (reduced iterations, real sampler) — the
+  # library's compute_latent_samples now tolerates per-sample FitException,
+  # so assertion-violating posterior samples are skipped rather than
+  # crashing the post-fit updater.
   - pattern: "features/assertion"
-    unset: [PYAUTO_TEST_MODE]
+    set:
+      PYAUTO_TEST_MODE: "1"
