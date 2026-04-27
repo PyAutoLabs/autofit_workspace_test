@@ -3,3 +3,14 @@ output/
 dataset/
 test_report.md
 test_results/
+
+# Generated artifacts — never check in
+image.fits
+path/
+scripts/path/
+scripts/scripts/
+output_path/
+root.log
+*.log
+*.pyc
+.codex/
