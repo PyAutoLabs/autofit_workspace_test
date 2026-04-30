@@ -10,7 +10,7 @@
 
 defaults:
   PYAUTO_TEST_MODE: "2"              # 0=normal, 1=reduced iterations, 2=skip sampler (fastest)
-  PYAUTO_WORKSPACE_SMALL_DATASETS: "1"  # Cap grids/masks to 15x15, reduce MGE gaussians
+  PYAUTO_SMALL_DATASETS: "1"            # Cap grids/masks to 15x15, reduce MGE gaussians
   PYAUTO_DISABLE_JAX: "1"              # Force use_jax=False, avoid JIT compilation overhead
   PYAUTO_FAST_PLOTS: "1"               # Skip tight_layout() + critical curve/caustic overlays
   JAX_ENABLE_X64: "True"               # Enable 64-bit precision in JAX
