@@ -141,4 +141,4 @@ if __name__ == "__main__":
     assert_pickle_strips_jax_cached_attrs()
     assert_fit_for_visualization_dispatches_through_jit_when_flag_set()
     assert_array_optimisation_returns_jnp_instance()
-    print("jax_assertions: all assertions passed")
+    print("fitness_dispatch: all assertions passed")
