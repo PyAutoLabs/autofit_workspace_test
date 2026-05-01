@@ -28,6 +28,7 @@ References:
  - https://nautilus-sampler.readthedocs.io/en/stable/index.html
  - https://github.com/johannesulf/nautilus
 """
+
 import numpy as np
 from os import path
 

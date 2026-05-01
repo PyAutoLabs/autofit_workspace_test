@@ -145,19 +145,13 @@ assert obj32 != obj2
 assert obj52 != obj2
 
 assert all(
-    utils.nested_iter(
-        utils.nested_map(lambda a, b, c: a == b == c, obj1, obj3, obj5)
-    )
+    utils.nested_iter(utils.nested_map(lambda a, b, c: a == b == c, obj1, obj3, obj5))
 )
 assert all(
-    utils.nested_iter(
-        utils.nested_map(lambda a, b, c: a == b == c, obj2, obj4, obj6)
-    )
+    utils.nested_iter(utils.nested_map(lambda a, b, c: a == b == c, obj2, obj4, obj6))
 )
 assert all(map(lambda x: x[0] == x[1] == x[2], utils.nested_zip(obj1, obj3, obj5)))
-assert all(
-    map(lambda x: x[0] == x[1] == x[2], utils.nested_zip(obj2, obj32, obj52))
-)
+assert all(map(lambda x: x[0] == x[1] == x[2], utils.nested_zip(obj2, obj32, obj52)))
 
 """
 __nested_update Preserves NamedTuple Type__
@@ -193,23 +187,17 @@ obj6 = {"a": 2, "b": 4, "c": (6, {"e": NTuple(8, 10)}), "d": {"a": 2, "b": 4}}
 
 for path, val in utils.nested_items(obj1):
     assert (
-        utils.nested_getitem(obj2, path)
-        == utils.nested_getitem(obj4, path)
-        == val * 2
+        utils.nested_getitem(obj2, path) == utils.nested_getitem(obj4, path) == val * 2
     )
 
 for path, val in utils.nested_items(obj3):
     assert (
-        utils.nested_getitem(obj4, path)
-        == utils.nested_getitem(obj6, path)
-        == val * 2
+        utils.nested_getitem(obj4, path) == utils.nested_getitem(obj6, path) == val * 2
     )
 
 for path, val in utils.nested_items(obj5):
     assert (
-        utils.nested_getitem(obj6, path)
-        == utils.nested_getitem(obj2, path)
-        == val * 2
+        utils.nested_getitem(obj6, path) == utils.nested_getitem(obj2, path) == val * 2
     )
 
 assert list(utils.nested_items([NTuple(1, 2), {2: 5, 1: 3}])) == [

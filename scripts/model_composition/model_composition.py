@@ -84,9 +84,11 @@ assert model.unique_prior_paths == [
 ]
 
 prior_types = [type(p).__name__ for _, p in model.prior_tuples_ordered_by_id]
-assert prior_types == ["UniformPrior", "LogUniformPrior", "UniformPrior"], (
-    f"Default prior types changed: {prior_types}"
-)
+assert prior_types == [
+    "UniformPrior",
+    "LogUniformPrior",
+    "UniformPrior",
+], f"Default prior types changed: {prior_types}"
 
 model = af.Collection(gaussian=Gaussian, exponential=Exponential)
 
@@ -125,7 +127,10 @@ model_multi_link.gaussian.normalization = model_multi_link.exponential.normaliza
 
 assert model_multi_link.prior_count == 4
 assert model_multi_link.gaussian.centre is model_multi_link.exponential.centre
-assert model_multi_link.gaussian.normalization is model_multi_link.exponential.normalization
+assert (
+    model_multi_link.gaussian.normalization
+    is model_multi_link.exponential.normalization
+)
 
 print("Prior linking: PASSED")
 
@@ -153,9 +158,9 @@ expected_paths = [
     ("group_b", "e1", "normalization"),
     ("group_b", "e1", "rate"),
 ]
-assert nested.unique_prior_paths == expected_paths, (
-    f"Path structure changed: {nested.unique_prior_paths}"
-)
+assert (
+    nested.unique_prior_paths == expected_paths
+), f"Path structure changed: {nested.unique_prior_paths}"
 
 nested.group_a.g1.centre = nested.group_b.e1.centre
 assert nested.prior_count == 8
@@ -268,27 +273,29 @@ assert model.prior_count == 5
 d = model.dict()
 restored = af.Collection.from_dict(d)
 
-assert restored.prior_count == model.prior_count, (
-    f"prior_count changed after round-trip: {restored.prior_count} vs {model.prior_count}"
-)
+assert (
+    restored.prior_count == model.prior_count
+), f"prior_count changed after round-trip: {restored.prior_count} vs {model.prior_count}"
 
-assert restored.gaussian.centre is restored.gaussian.sigma, (
-    "Shared-prior identity lost after serialization round-trip"
-)
+assert (
+    restored.gaussian.centre is restored.gaussian.sigma
+), "Shared-prior identity lost after serialization round-trip"
 
-assert restored.gaussian.centre is not restored.exponential.centre, (
-    "Unlinked priors should remain independent after round-trip"
-)
+assert (
+    restored.gaussian.centre is not restored.exponential.centre
+), "Unlinked priors should remain independent after round-trip"
 
 original_types = sorted(type(p).__name__ for _, p in model.prior_tuples_ordered_by_id)
-restored_types = sorted(type(p).__name__ for _, p in restored.prior_tuples_ordered_by_id)
-assert restored_types == original_types, (
-    f"Prior types changed after round-trip: {restored_types} vs {original_types}"
+restored_types = sorted(
+    type(p).__name__ for _, p in restored.prior_tuples_ordered_by_id
 )
+assert (
+    restored_types == original_types
+), f"Prior types changed after round-trip: {restored_types} vs {original_types}"
 
-assert sorted(restored.unique_prior_paths) == sorted(model.unique_prior_paths), (
-    f"Path structure changed after round-trip"
-)
+assert sorted(restored.unique_prior_paths) == sorted(
+    model.unique_prior_paths
+), f"Path structure changed after round-trip"
 
 print("Serialization round-trip: PASSED")
 
@@ -327,9 +334,9 @@ model_different = af.Collection(gaussian=Gaussian, exponential=Exponential)
 model_different.gaussian.centre = af.UniformPrior(lower_limit=0.0, upper_limit=200.0)
 paths_diff = DirectoryPaths()
 paths_diff.model = model_different
-assert paths_diff.identifier != identifier, (
-    "Changing prior bounds should change identifier"
-)
+assert (
+    paths_diff.identifier != identifier
+), "Changing prior bounds should change identifier"
 
 model_linked = af.Collection(gaussian=Gaussian, exponential=Exponential)
 model_linked.gaussian.centre = model_linked.exponential.centre

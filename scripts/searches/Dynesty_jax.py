@@ -34,6 +34,7 @@ References:
  - https://dynesty.readthedocs.io/en/stable/
  - https://github.com/joshspeagle/dynesty
 """
+
 from os import path
 
 import autofit as af
