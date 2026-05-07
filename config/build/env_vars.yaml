@@ -42,3 +42,9 @@ overrides:
   - pattern: "features/assertion"
     set:
       PYAUTO_TEST_MODE: "1"
+  # JAX assertion scripts exist specifically to test JAX behavior — disabling
+  # JAX makes their assertions vacuous (Analysis._use_jax_for_visualization is
+  # silently flipped to False, so cached attrs like _jitted_fit_from never get
+  # set, and downstream assertions about those attrs hit __getattr__).
+  - pattern: "jax_assertions/"
+    unset: [PYAUTO_DISABLE_JAX]
