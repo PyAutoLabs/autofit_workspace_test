@@ -19,16 +19,16 @@ machinery in isolation.
 
 __Contents__
 
-**Basic Model Composition:** af.Model and af.Collection with multiple components.
-**Prior Linking:** Shared priors via object identity, cross-component links.
-**Nested Collections:** Multi-level af.Collection nesting and cross-collection linking.
-**Prior Types:** Uniform, Gaussian, TruncatedGaussian, LogUniform — type assertions.
-**Fixed Parameters:** Constants reduce prior count.
-**Parameter Vector Ordering:** prior_tuples_ordered_by_id, instance_from_vector, unit vectors.
-**Serialization Round-Trip:** dict/from_dict preserves prior count, identity, types, paths.
-**Identifier Stability:** Deterministic md5 hash; changes with structure or prior bounds.
-**Model Subsetting:** with_paths, without_paths filtering.
-**Model Assertions:** add_assertion raises FitException on invalid vectors.
+- **Basic Model Composition:** af.Model and af.Collection with multiple components.
+- **Prior Linking:** Shared priors via object identity, cross-component links.
+- **Nested Collections:** Multi-level af.Collection nesting and cross-collection linking.
+- **Prior Types:** Uniform, Gaussian, TruncatedGaussian, LogUniform — type assertions.
+- **Fixed Parameters:** Constants reduce prior count.
+- **Parameter Vector Ordering:** prior_tuples_ordered_by_id, instance_from_vector, unit vectors.
+- **Serialization Round-Trip:** dict/from_dict preserves prior count, identity, types, paths.
+- **Identifier Stability:** Deterministic md5 hash; changes with structure or prior bounds.
+- **Model Subsetting:** with_paths, without_paths filtering.
+- **Model Assertions:** add_assertion raises FitException on invalid vectors.
 """
 
 import autofit as af
