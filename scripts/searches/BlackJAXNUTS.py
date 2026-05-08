@@ -102,7 +102,9 @@ The chain should recover (centre, normalization, sigma) close to the simulator t
 10). With 500 samples and a 3-dim model these are easily within 1σ.
 """
 mp = result.samples.median_pdf()
-print(f"BlackJAXNUTS recovered: centre={mp.centre:.3f}  normalization={mp.normalization:.3f}  sigma={mp.sigma:.3f}")
+print(
+    f"BlackJAXNUTS recovered: centre={mp.centre:.3f}  normalization={mp.normalization:.3f}  sigma={mp.sigma:.3f}"
+)
 print(f"Truth:                  centre=50.000  normalization=25.000  sigma=10.000")
 
 info = result.samples.samples_info
@@ -114,7 +116,11 @@ print(f"Total leapfrog evals:   {info['n_logl_evals']}")
 # Hard guard against silent regressions in the wiring: if any of these fail the chain produced
 # nonsense, even if the script still ran.
 assert abs(mp.centre - 50.0) < 5.0, f"centre off by too much: {mp.centre}"
-assert abs(mp.normalization - 25.0) < 5.0, f"normalization off by too much: {mp.normalization}"
+assert (
+    abs(mp.normalization - 25.0) < 5.0
+), f"normalization off by too much: {mp.normalization}"
 assert abs(mp.sigma - 10.0) < 3.0, f"sigma off by too much: {mp.sigma}"
 assert info["n_divergent"] == 0, f"unexpected divergences: {info['n_divergent']}"
-assert info["ess_min"] > 50.0, f"ESS too low (chain may not have mixed): {info['ess_min']}"
+assert (
+    info["ess_min"] > 50.0
+), f"ESS too low (chain may not have mixed): {info['ess_min']}"
