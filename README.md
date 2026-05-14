@@ -20,7 +20,7 @@ python slam/imaging/no_lens_light/source_lp/mass_total/no_hyper.py
 
 # Workspace Version
 
-This version of the workspace are built and tested for using **PyAutoFit v2026.4.5.3**.
+This version of the workspace are built and tested for using **PyAutoFit v2026.5.14.1**.
 
 # Build Configuration
 
