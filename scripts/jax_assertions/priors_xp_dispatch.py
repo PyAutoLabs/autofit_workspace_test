@@ -258,6 +258,89 @@ def assert_gaussian_prior_value_for_jax_grad_finite():
     assert np.isfinite(g)
 
 
+def assert_log_prior_density_convention_gaussian():
+    """``GaussianPrior.log_prior_from_value`` returns ``log p(x)`` in density form.
+
+    Maximum at value == mean (returns 0; the ``-log(sigma * sqrt(2 pi))`` constant
+    is dropped), negative elsewhere. Regression gate for PyAutoLabs/PyAutoFit#1266 —
+    cost-form bodies returned a positive quadratic and biased every MCMC fit
+    with a non-uniform prior.
+    """
+    prior = af.GaussianPrior(mean=5.0, sigma=1.0)
+
+    at_mean = prior.log_prior_from_value(value=5.0)
+    one_sigma = prior.log_prior_from_value(value=6.0)
+    three_sigma = prior.log_prior_from_value(value=8.0)
+
+    assert at_mean == 0.0, (
+        f"log_prior at mean must be 0.0 (density form, constant dropped); got {at_mean!r}"
+    )
+    assert one_sigma == -0.5, (
+        f"log_prior 1σ from mean must be -0.5 (density form); got {one_sigma!r}. "
+        f"Positive value indicates cost-form regression."
+    )
+    assert three_sigma == -4.5, (
+        f"log_prior 3σ from mean must be -4.5 (density form); got {three_sigma!r}. "
+        f"Positive value indicates cost-form regression."
+    )
+
+
+def assert_log_prior_density_convention_log_uniform():
+    """``LogUniformPrior.log_prior_from_value`` returns ``-log(value)`` in density
+    form, with the ``-log(log(b/a))`` normalisation constant dropped (matches
+    ``UniformPrior`` dropping ``-log(b - a)`` to return 0.0).
+    """
+    prior = af.LogUniformPrior(lower_limit=0.01, upper_limit=100.0)
+
+    at_one = prior.log_prior_from_value(value=1.0)
+    at_e = prior.log_prior_from_value(value=np.e)
+
+    assert at_one == 0.0, (
+        f"log_prior at value=1.0 must be 0.0 (density form, -log(1)=0); got {at_one!r}. "
+        f"Returning 1.0 indicates the pre-#1266 1/value Jacobian-gradient bug."
+    )
+    assert np.isclose(at_e, -1.0, atol=1e-12), (
+        f"log_prior at value=e must be -1.0 (density form, -log(e)=-1); got {at_e!r}"
+    )
+
+
+def assert_log_prior_density_convention_log_gaussian():
+    """``LogGaussianPrior.log_prior_from_value`` returns the density-form
+    ``-(log(value) - mean)**2 / (2 sigma**2) - log(value)``, with the Jacobian
+    of the log-space transform contributing the ``-log(value)`` term.
+    """
+    prior = af.LogGaussianPrior(mean=0.0, sigma=1.0)
+
+    out_of_support = prior.log_prior_from_value(value=0.0)
+    assert out_of_support == float("-inf"), (
+        f"log_prior at value=0 must be -inf (out of support); got {out_of_support!r}"
+    )
+
+    # At value=1 (i.e. log(value)=0=mean), the quadratic is zero, so the result
+    # is just the Jacobian -log(1) = 0.
+    at_one = prior.log_prior_from_value(value=1.0)
+    assert at_one == 0.0, (
+        f"log_prior at value=1 must be 0.0 (density form: quadratic=0, Jacobian=0); "
+        f"got {at_one!r}"
+    )
+
+
+def assert_log_prior_density_jax_matches_numpy_signed():
+    """Tighten the existing NumPy↔JAX parity gates with sign-direction checks.
+
+    Confirms the JAX path returns a value with the same sign as the NumPy path
+    at a point known to be away from the prior mode — guards against a partial
+    sign-flip regression where one xp path is fixed but the other isn't.
+    """
+    prior = af.GaussianPrior(mean=0.0, sigma=1.0)
+    np_lp = prior.log_prior_from_value(value=2.0, xp=np)
+    jnp_lp = float(prior.log_prior_from_value(value=jnp.float64(2.0), xp=jnp))
+
+    assert np_lp < 0.0, f"NumPy density-form log_prior must be < 0 at |z|=2σ; got {np_lp}"
+    assert jnp_lp < 0.0, f"JAX density-form log_prior must be < 0 at |z|=2σ; got {jnp_lp}"
+    assert np.isclose(np_lp, jnp_lp, atol=1e-12)
+
+
 if __name__ == "__main__":
     assert_uniform_prior_value_for_jax_matches_numpy()
     assert_uniform_prior_value_for_jax_vector_input()
@@ -283,4 +366,8 @@ if __name__ == "__main__":
     assert_uniform_prior_value_for_jit_traceable()
     assert_gaussian_prior_value_for_jit_traceable()
     assert_gaussian_prior_value_for_jax_grad_finite()
+    assert_log_prior_density_convention_gaussian()
+    assert_log_prior_density_convention_log_uniform()
+    assert_log_prior_density_convention_log_gaussian()
+    assert_log_prior_density_jax_matches_numpy_signed()
     print("priors_xp_dispatch: all assertions passed")
