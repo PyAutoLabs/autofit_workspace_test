@@ -91,14 +91,13 @@ def assert_fit_for_visualization_dispatches_through_jit_when_flag_set():
     assert jnp.allclose(result_2, jnp.asarray(6.0))
 
 
-def assert_use_jax_true_implicitly_turns_on_visualization():
-    """Sentinel default: ``Analysis(use_jax=True)`` with no explicit
-    ``use_jax_for_visualization`` argument resolves to the JIT visualization
-    path. Validates that PyAutoFit's ``Analysis.__init__`` treats
-    ``use_jax_for_visualization=None`` as "follow ``use_jax``"."""
+def assert_use_jax_true_defaults_visualization_off():
+    """``Analysis(use_jax=True)`` with no explicit ``use_jax_for_visualization``
+    argument leaves the JIT visualization path **off** — the flag must be
+    opted into explicitly per ``Analysis.__init__``'s ``False`` default."""
     analysis = af.Analysis(use_jax=True)
     assert analysis._use_jax is True
-    assert analysis._use_jax_for_visualization is True
+    assert analysis._use_jax_for_visualization is False
 
 
 def assert_explicit_false_opts_out_when_use_jax_true():
@@ -107,24 +106,6 @@ def assert_explicit_false_opts_out_when_use_jax_true():
     analysis = af.Analysis(use_jax=True, use_jax_for_visualization=False)
     assert analysis._use_jax is True
     assert analysis._use_jax_for_visualization is False
-
-
-def assert_explicit_none_resolves_to_use_jax():
-    """Passing ``None`` explicitly is identical to omitting the argument."""
-    analysis = af.Analysis(use_jax=True, use_jax_for_visualization=None)
-    assert analysis._use_jax_for_visualization is True
-
-
-def assert_use_jax_true_jit_dispatch_via_sentinel_default():
-    """End-to-end: ``Analysis(use_jax=True)`` with sentinel default still wires
-    the JIT dispatch in ``fit_for_visualization`` — the previous assertion at
-    the top of this section did the equivalent with the flag set explicitly;
-    this one confirms the same behaviour when relying on the new default."""
-    analysis = _JitFittableAnalysis(use_jax=True)
-    assert getattr(analysis, "_jitted_fit_from", None) is None
-    result = analysis.fit_for_visualization(instance=2.0)
-    assert analysis._jitted_fit_from is not None
-    assert jnp.allclose(result, jnp.asarray(4.0))
 
 
 class _ArrayAnalysis(af.Analysis):
@@ -176,9 +157,7 @@ if __name__ == "__main__":
     assert_vmap_takes_precedence_over_jit()
     assert_pickle_strips_jax_cached_attrs()
     assert_fit_for_visualization_dispatches_through_jit_when_flag_set()
-    assert_use_jax_true_implicitly_turns_on_visualization()
+    assert_use_jax_true_defaults_visualization_off()
     assert_explicit_false_opts_out_when_use_jax_true()
-    assert_explicit_none_resolves_to_use_jax()
-    assert_use_jax_true_jit_dispatch_via_sentinel_default()
     assert_array_optimisation_returns_jnp_instance()
     print("fitness_dispatch: all assertions passed")
