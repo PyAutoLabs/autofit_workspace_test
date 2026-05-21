@@ -48,3 +48,11 @@ overrides:
   # set, and downstream assertions about those attrs hit __getattr__).
   - pattern: "jax_assertions/"
     unset: [PYAUTO_DISABLE_JAX]
+  # BlackJAXNUTS is a gradient-based MCMC that requires JAX (jax.grad of the
+  # autofit Fitness). Under PYAUTO_TEST_MODE=2 the sampler is bypassed and
+  # returns the prior midpoint — the script's truth-recovery assertions
+  # (centre ≈ 50, normalization ≈ 25, sigma ≈ 10) then fail because the
+  # LogUniformPrior's log-midpoint is 1.0, not 25.0. Run with full sampler
+  # at the script's already-cheap defaults (num_warmup=200, num_samples=500).
+  - pattern: "searches/BlackJAXNUTS"
+    unset: [PYAUTO_TEST_MODE, PYAUTO_DISABLE_JAX]
