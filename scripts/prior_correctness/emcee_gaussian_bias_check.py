@@ -22,12 +22,15 @@ Run from the workspace root::
 
     python scripts/prior_correctness/emcee_gaussian_bias_check.py
 """
+
 import os
+
 os.environ.setdefault("PYAUTO_SKIP_WORKSPACE_VERSION_CHECK", "1")
 os.environ.setdefault("NUMBA_CACHE_DIR", "/tmp/numba_cache")
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
 
 import warnings
+
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 import numpy as np
@@ -70,7 +73,7 @@ def assert_gaussian_prior_recovers_prior_under_flat_likelihood():
     sampler.run_mcmc(p0, nsteps, progress=False)
 
     chain = sampler.get_chain()
-    last_half = chain[nsteps // 2:, :, 0].flatten()
+    last_half = chain[nsteps // 2 :, :, 0].flatten()
     finite = last_half[np.isfinite(last_half)]
 
     assert finite.size == last_half.size, (
@@ -127,7 +130,7 @@ def assert_lognormal_prior_finite_under_flat_likelihood():
     sampler.run_mcmc(p0, nsteps, progress=False)
 
     chain = sampler.get_chain()
-    last_half = chain[nsteps // 2:, :, 0].flatten()
+    last_half = chain[nsteps // 2 :, :, 0].flatten()
     finite = last_half[np.isfinite(last_half)]
 
     assert finite.size == last_half.size, (

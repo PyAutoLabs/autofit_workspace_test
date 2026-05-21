@@ -19,12 +19,15 @@ Run from the workspace root::
 
     python scripts/prior_correctness/lbfgs_gaussian_bias_check.py
 """
+
 import os
+
 os.environ.setdefault("PYAUTO_SKIP_WORKSPACE_VERSION_CHECK", "1")
 os.environ.setdefault("NUMBA_CACHE_DIR", "/tmp/numba_cache")
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
 
 import warnings
+
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 import numpy as np

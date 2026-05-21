@@ -195,9 +195,7 @@ def assert_vector_from_unit_vector_jax_matches_numpy():
     model = _five_prior_model()
     units = [0.1, 0.4, 0.5, 0.6, 0.8]
     np_out = np.asarray(model.vector_from_unit_vector(units, xp=np))
-    jnp_out = np.asarray(
-        model.vector_from_unit_vector(jnp.array(units), xp=jnp)
-    )
+    jnp_out = np.asarray(model.vector_from_unit_vector(jnp.array(units), xp=jnp))
     np.testing.assert_allclose(np_out, jnp_out, atol=1e-8)
 
 
@@ -272,9 +270,9 @@ def assert_log_prior_density_convention_gaussian():
     one_sigma = prior.log_prior_from_value(value=6.0)
     three_sigma = prior.log_prior_from_value(value=8.0)
 
-    assert at_mean == 0.0, (
-        f"log_prior at mean must be 0.0 (density form, constant dropped); got {at_mean!r}"
-    )
+    assert (
+        at_mean == 0.0
+    ), f"log_prior at mean must be 0.0 (density form, constant dropped); got {at_mean!r}"
     assert one_sigma == -0.5, (
         f"log_prior 1σ from mean must be -0.5 (density form); got {one_sigma!r}. "
         f"Positive value indicates cost-form regression."
@@ -299,9 +297,9 @@ def assert_log_prior_density_convention_log_uniform():
         f"log_prior at value=1.0 must be 0.0 (density form, -log(1)=0); got {at_one!r}. "
         f"Returning 1.0 indicates the pre-#1266 1/value Jacobian-gradient bug."
     )
-    assert np.isclose(at_e, -1.0, atol=1e-12), (
-        f"log_prior at value=e must be -1.0 (density form, -log(e)=-1); got {at_e!r}"
-    )
+    assert np.isclose(
+        at_e, -1.0, atol=1e-12
+    ), f"log_prior at value=e must be -1.0 (density form, -log(e)=-1); got {at_e!r}"
 
 
 def assert_log_prior_density_convention_log_gaussian():
@@ -312,9 +310,9 @@ def assert_log_prior_density_convention_log_gaussian():
     prior = af.LogGaussianPrior(mean=0.0, sigma=1.0)
 
     out_of_support = prior.log_prior_from_value(value=0.0)
-    assert out_of_support == float("-inf"), (
-        f"log_prior at value=0 must be -inf (out of support); got {out_of_support!r}"
-    )
+    assert out_of_support == float(
+        "-inf"
+    ), f"log_prior at value=0 must be -inf (out of support); got {out_of_support!r}"
 
     # At value=1 (i.e. log(value)=0=mean), the quadratic is zero, so the result
     # is just the Jacobian -log(1) = 0.
@@ -336,8 +334,12 @@ def assert_log_prior_density_jax_matches_numpy_signed():
     np_lp = prior.log_prior_from_value(value=2.0, xp=np)
     jnp_lp = float(prior.log_prior_from_value(value=jnp.float64(2.0), xp=jnp))
 
-    assert np_lp < 0.0, f"NumPy density-form log_prior must be < 0 at |z|=2σ; got {np_lp}"
-    assert jnp_lp < 0.0, f"JAX density-form log_prior must be < 0 at |z|=2σ; got {jnp_lp}"
+    assert (
+        np_lp < 0.0
+    ), f"NumPy density-form log_prior must be < 0 at |z|=2σ; got {np_lp}"
+    assert (
+        jnp_lp < 0.0
+    ), f"JAX density-form log_prior must be < 0 at |z|=2σ; got {jnp_lp}"
     assert np.isclose(np_lp, jnp_lp, atol=1e-12)
 
 
