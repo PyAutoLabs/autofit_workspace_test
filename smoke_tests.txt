@@ -3,6 +3,7 @@ searches/DynestyStatic.py
 searches/Nautilus.py
 features/minimal_output.py
 features/latent.py
+features/latent_nan_robustness.py
 features/assertion.py
 database/scrape/general.py
 database/directory/general.py
