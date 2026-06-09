@@ -76,36 +76,27 @@ class _JitFittableAnalysis(af.Analysis):
         return jnp.asarray(instance) * 2.0
 
 
-def assert_fit_for_visualization_dispatches_through_jit_when_flag_set():
-    analysis = _JitFittableAnalysis(use_jax=True, use_jax_for_visualization=True)
-
-    assert getattr(analysis, "_jitted_fit_from", None) is None
+def assert_fit_for_visualization_follows_use_jax_contract():
+    analysis = _JitFittableAnalysis(use_jax=True)
 
     result_1 = analysis.fit_for_visualization(instance=1.0)
-    assert analysis._jitted_fit_from is not None
     assert jnp.allclose(result_1, jnp.asarray(2.0))
+    assert analysis.supports_jax_visualization is True
 
-    jitted_after_first = analysis._jitted_fit_from
     result_2 = analysis.fit_for_visualization(instance=3.0)
-    assert analysis._jitted_fit_from is jitted_after_first
     assert jnp.allclose(result_2, jnp.asarray(6.0))
 
 
-def assert_use_jax_true_defaults_visualization_off():
-    """``Analysis(use_jax=True)`` with no explicit ``use_jax_for_visualization``
-    argument leaves the JIT visualization path **off** — the flag must be
-    opted into explicitly per ``Analysis.__init__``'s ``False`` default."""
+def assert_use_jax_true_enables_jax_visualization():
     analysis = af.Analysis(use_jax=True)
     assert analysis._use_jax is True
-    assert analysis._use_jax_for_visualization is False
+    assert analysis.supports_jax_visualization is True
 
 
-def assert_explicit_false_opts_out_when_use_jax_true():
-    """Users can force the eager NumPy plotter alongside JAX likelihoods by
-    passing ``use_jax_for_visualization=False`` explicitly."""
-    analysis = af.Analysis(use_jax=True, use_jax_for_visualization=False)
-    assert analysis._use_jax is True
-    assert analysis._use_jax_for_visualization is False
+def assert_use_jax_false_keeps_visualization_numpy_safe():
+    analysis = af.Analysis(use_jax=False)
+    assert analysis._use_jax is False
+    assert analysis.supports_jax_visualization is False
 
 
 class _ArrayAnalysis(af.Analysis):
@@ -156,8 +147,8 @@ if __name__ == "__main__":
     assert_jit_dispatch_sets_call_to_jit()
     assert_vmap_takes_precedence_over_jit()
     assert_pickle_strips_jax_cached_attrs()
-    assert_fit_for_visualization_dispatches_through_jit_when_flag_set()
-    assert_use_jax_true_defaults_visualization_off()
-    assert_explicit_false_opts_out_when_use_jax_true()
+    assert_fit_for_visualization_follows_use_jax_contract()
+    assert_use_jax_true_enables_jax_visualization()
+    assert_use_jax_false_keeps_visualization_numpy_safe()
     assert_array_optimisation_returns_jnp_instance()
     print("fitness_dispatch: all assertions passed")
