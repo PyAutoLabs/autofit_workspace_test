@@ -15,7 +15,9 @@ import autofit as af
 
 import os
 from os import path
+from pathlib import Path
 import numpy as np
+from autoconf.test_mode import with_test_mode_segment
 
 """
 ___Session__
@@ -28,7 +30,7 @@ session = None
 """
 __Dataset Names__
 
-Load the dataset from hard-disc, set up its `Analysis` class and fit it with a non-linear search. 
+Load the dataset from hard-disc, set up its `Analysis` class and fit it with a non-linear search.
 """
 dataset_name = "gaussian_x1"
 
@@ -89,7 +91,7 @@ search.fit(model=model, analysis=analysis)
 Result sare written directly to the `database.sqlite` file omitted hard-disc output entirely, which
 can be important for performing large model-fitting tasks on high performance computing facilities where there
 may be limits on the number of files allowed. The commented out code below shows how one would perform
-direct output to the `.sqlite` file. 
+direct output to the `.sqlite` file.
 """
 search = af.DynestyStatic(
     name=name,
@@ -117,16 +119,17 @@ import os
 from autofit.database.aggregator import Aggregator
 
 database_file = "database_directory_grid_search.sqlite"
+output_path = with_test_mode_segment(Path("output"))
 
 try:
-    os.remove(path.join("output", database_file))
+    os.remove(output_path / database_file)
 except FileNotFoundError:
     pass
 
 agg = Aggregator.from_database(database_file, completed_only=False)
 
 agg.add_directory(
-    directory=path.join("output", "database", "scrape", name, dataset_name)
+    directory=output_path / "database" / "scrape" / name / dataset_name
 )
 
 assert len(agg) > 0
@@ -200,7 +203,7 @@ print(f"{list(agg.grid_searches())[0]['result'].log_evidences().native}\n")
 assert list(agg.grid_searches())[0]["result"].log_evidences().native[0] > -1e8
 
 """
-From the GridSearch, get an aggregator which contains only the maximum log likelihood model. E.g. if the 10th out of the 
+From the GridSearch, get an aggregator which contains only the maximum log likelihood model. E.g. if the 10th out of the
 16 cells was the best fit:
 """
 print("\n\n****MAX LH AGGREGATOR VIA GRID****\n\n")
