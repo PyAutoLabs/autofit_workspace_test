@@ -43,17 +43,26 @@ import autofit as af
 LATENT_BATCH_SIZE = 3  # <= the stride above, so batch 0 stays fully finite.
 
 
-class TwoLatentAnalysis(af.ex.Analysis):
-    """Example analysis with two latents so a dropped column 0 mis-zips the
-    second key (``gaussian.fwhm_double``), reproducing the pre-fix KeyError."""
+class TwoLatent(af.Latent):
+    """Latent catalogue with two keys so a dropped column 0 mis-zips the second
+    key (``gaussian.fwhm_double``), reproducing the pre-fix KeyError."""
 
-    LATENT_KEYS = ["gaussian.fwhm", "gaussian.fwhm_double"]
+    @staticmethod
+    def keys(analysis):
+        return ["gaussian.fwhm", "gaussian.fwhm_double"]
 
-    def compute_latent_variables(self, parameters, model):
+    @staticmethod
+    def variables(analysis, parameters, model):
         instance = model.instance_from_vector(vector=parameters)
         fwhm = instance.gaussian.fwhm
-        # Tuple positionally aligned with LATENT_KEYS (column 0, column 1).
+        # Tuple positionally aligned with keys() (column 0, column 1).
         return (fwhm, 2.0 * fwhm)
+
+
+class TwoLatentAnalysis(af.ex.Analysis):
+    """Example analysis declaring the two-latent catalogue via ``Latent``."""
+
+    Latent = TwoLatent
 
 
 dataset_name = "gaussian_x1"
@@ -118,7 +127,7 @@ def _resolve(obj, dotted_key):
 
 
 surviving = []
-for key in TwoLatentAnalysis.LATENT_KEYS:
+for key in TwoLatent.keys(analysis):
     try:
         value = float(_resolve(instance, key))
     except (AttributeError, TypeError):
