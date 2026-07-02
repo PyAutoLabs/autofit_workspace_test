@@ -3,25 +3,32 @@
 # wheel-based release-fidelity path). Distinct from env_vars.yaml, which is the
 # `smoke` profile used by the per-PR CI gate.
 #
-# The `release` profile runs REAL searches (PYAUTO_TEST_MODE=0) at full
-# resolution: PYAUTO_SMALL_DATASETS and PYAUTO_FAST_PLOTS are deliberately
-# absent from "defaults" below (unset == full-res, real plots), unlike the
-# smoke profile which caps both for speed. Spec + acceptance table:
+# The `release` profile runs REAL searches (PYAUTO_TEST_MODE="0" — no
+# reduced-iteration bypass) at full resolution. Spec + acceptance table:
 # PyAutoHeart/docs/release_validation.md.
 #
 # "defaults" are applied to every script on top of the inherited environment.
-# "overrides" selectively unset or replace vars for matching path patterns —
-# identical in structure and intent to env_vars.yaml's overrides; they still
-# layer on top of this profile's defaults rather than the smoke ones. Several
-# overrides below are no-ops under this profile (the var they unset was never
-# set) but are kept so the two profiles stay easy to diff against each other.
+# Every var this profile cares about is given an EXPLICIT value in "defaults"
+# (not left absent) — the runner only ever *sets* keys it's given, it never
+# clears unrelated inherited env vars, so an absent key silently falls through
+# to whatever the calling process already had (a leftover smoke-mode value
+# from an earlier step, a developer's local shell, ...). Pinning everything
+# here makes the profile self-contained regardless of the caller's environment.
+#
+# "overrides" then only ever `set:` a var to flip it away from this profile's
+# own default for specific scripts — never `unset:` a var that "defaults"
+# already pins, since unsetting just re-exposes the same inherited-env gap
+# `defaults` exists to close. In practice that leaves PYAUTO_DISABLE_JAX as
+# the only var any override here still needs to touch — PYAUTO_TEST_MODE="0"
+# already satisfies every "needs a real sampler run" case the smoke profile's
+# env_vars.yaml handles with a per-script unset.
 #
 # Pattern convention (same as no_run.yaml):
 #   - Patterns containing '/' do a substring match against the file path
 #   - Patterns without '/' match the file stem exactly
 
 defaults:
-  PYAUTO_TEST_MODE: "0"              # real searches — no reduced-iteration bypass
+  PYAUTO_TEST_MODE: "0"                # real searches — no reduced-iteration bypass
   PYAUTO_DISABLE_JAX: "1"              # force use_jax=False by default; jax_assertions/ + searches/BlackJAXNUTS re-enable below
   PYAUTO_SKIP_WORKSPACE_VERSION_CHECK: "1"  # TestPyPI dev version won't match the workspace pin
   JAX_ENABLE_X64: "True"               # enable 64-bit precision in JAX
@@ -29,34 +36,19 @@ defaults:
   MPLCONFIGDIR: "/tmp/matplotlib"       # writable config dir for matplotlib
 
 overrides:
-  # Aggregator / database / minimal-output scripts assert `len(agg) > 0`.
-  # They need a real sampler run; under this profile PYAUTO_TEST_MODE is
-  # already "0" (real sampler), so these unsets are no-ops — kept for parity
-  # with env_vars.yaml's smoke overrides.
-  - pattern: "database/directory/general"
-    unset: [PYAUTO_TEST_MODE]
-  - pattern: "database/directory/multi_analysis"
-    unset: [PYAUTO_TEST_MODE]
-  - pattern: "database/scrape/general"
-    unset: [PYAUTO_TEST_MODE]
-  - pattern: "database/scrape/multi_analysis"
-    unset: [PYAUTO_TEST_MODE]
-  - pattern: "features/minimal_output"
-    unset: [PYAUTO_TEST_MODE]
-  # features/assertion needs a real sampler run so the library's per-sample
-  # FitException tolerance (compute_latent_samples) actually gets exercised —
-  # PYAUTO_TEST_MODE is already "0" (full real sampler) under this profile, a
-  # strict superset of the smoke override's TEST_MODE=1, so no override
-  # needed here (unlike env_vars.yaml, which must force it up from smoke's
-  # bypass default of "2").
+  # Aggregator / database / minimal-output / features/assertion scripts all
+  # need a real sampler run — PYAUTO_TEST_MODE="0" above already satisfies
+  # that for every one of them, so unlike env_vars.yaml (whose smoke default
+  # bypasses the sampler entirely), no override is needed here.
+  #
   # JAX assertion scripts exist specifically to test JAX behavior — disabling
   # JAX makes their assertions vacuous (Analysis._use_jax_for_visualization is
   # silently flipped to False, so cached attrs like _jitted_fit_from never get
   # set, and downstream assertions about those attrs hit __getattr__).
   - pattern: "jax_assertions/"
-    unset: [PYAUTO_DISABLE_JAX]
+    set: { PYAUTO_DISABLE_JAX: "0" }
   # BlackJAXNUTS is a gradient-based MCMC that requires JAX (jax.grad of the
-  # autofit Fitness). Needs JAX enabled; PYAUTO_TEST_MODE is already "0"
-  # (real sampler) under this profile so that unset is a no-op here.
+  # autofit Fitness) — needs JAX enabled. PYAUTO_TEST_MODE="0" (real sampler)
+  # already satisfied by defaults.
   - pattern: "searches/BlackJAXNUTS"
-    unset: [PYAUTO_TEST_MODE, PYAUTO_DISABLE_JAX]
+    set: { PYAUTO_DISABLE_JAX: "0" }
