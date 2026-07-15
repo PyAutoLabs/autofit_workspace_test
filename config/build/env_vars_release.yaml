@@ -29,40 +29,38 @@
 
 defaults:
   PYAUTO_TEST_MODE: "0"                # real searches — no reduced-iteration bypass
-  PYAUTO_DISABLE_JAX: "1"              # force use_jax=False by default; jax_assertions/ + searches/BlackJAXNUTS re-enable below
+  PYAUTO_DISABLE_JAX: "0"              # JAX enabled (release fidelity, not smoke) — see "Why 0" below
   PYAUTO_SKIP_WORKSPACE_VERSION_CHECK: "1"  # TestPyPI dev version won't match the workspace pin
   JAX_ENABLE_X64: "True"               # enable 64-bit precision in JAX
   NUMBA_CACHE_DIR: "/tmp/numba_cache"   # writable cache dir for numba
   MPLCONFIGDIR: "/tmp/matplotlib"       # writable config dir for matplotlib
 
-overrides:
-  # Aggregator / database / minimal-output / features/assertion scripts all
-  # need a real sampler run — PYAUTO_TEST_MODE="0" above already satisfies
-  # that for every one of them, so unlike env_vars.yaml (whose smoke default
-  # bypasses the sampler entirely), no override is needed here.
-  #
-  # JAX assertion scripts exist specifically to test JAX behavior — disabling
-  # JAX makes their assertions vacuous (Analysis._use_jax_for_visualization is
-  # silently flipped to False, so cached attrs like _jitted_fit_from never get
-  # set, and downstream assertions about those attrs hit __getattr__).
-  - pattern: "jax_assertions/"
-    set: { PYAUTO_DISABLE_JAX: "0" }
-  # BlackJAXNUTS is a gradient-based MCMC that requires JAX (jax.grad of the
-  # autofit Fitness) — needs JAX enabled. PYAUTO_TEST_MODE="0" (real sampler)
-  # already satisfied by defaults.
-  - pattern: "searches/BlackJAXNUTS"
-    set: { PYAUTO_DISABLE_JAX: "0" }
-  # MultiStartAdam is a JAX-native gradient MAP search (jax.vmap of
-  # jax.value_and_grad over the autofit Fitness). Unlike the samplers below it
-  # hard-raises when the analysis is not on the JAX backend, so the disabling
-  # default turned it into a release-validation failure the moment it landed.
-  - pattern: "searches/MultiStartAdam"
-    set: { PYAUTO_DISABLE_JAX: "0" }
-  # The *_jax sampler scripts exist to validate the JAX likelihood path. They
-  # carry no hard backend guard, so under the disabling default they silently
-  # validated the NumPy path and passed vacuously — the same failure mode the
-  # jax_assertions/ note above describes, minus the loud failure.
-  - pattern: "searches/Dynesty_jax"
-    set: { PYAUTO_DISABLE_JAX: "0" }
-  - pattern: "searches/Nautilus_jax"
-    set: { PYAUTO_DISABLE_JAX: "0" }
+# Why PYAUTO_DISABLE_JAX is "0" here, and why there is no per-script JAX
+# override list any more (2026-07-15)
+# ---------------------------------------------------------------------------
+# PYAUTO_DISABLE_JAX is read in exactly one place that matters to this
+# workspace: `af.Analysis.__init__`, where it forces `use_jax=False`. Every
+# analysis in this repo is `af.ex.Analysis` (or a local subclass of it), and
+# `af.Analysis` defaults to `use_jax=False`.
+#
+# So the old "1" default was a no-op for the ~35 scripts that never opt in —
+# they run on numpy either way — and silently sabotaged the ~7 that explicitly
+# pass `use_jax=True`, which are precisely the scripts written to exercise JAX.
+# It bought no speed and cost correctness. Its only real effect was to require
+# a hand-maintained "remember to add your script" override list, which is a
+# trap: a JAX-native script that forgets it does not fail loudly, it silently
+# validates numpy and passes. `searches/Dynesty_jax` and `searches/Nautilus_jax`
+# did exactly that for as long as they existed, and `searches/MultiStartAdam`
+# only failed loudly (taking nightly-release red for five nights,
+# autofit_workspace_test#44) because it happens to carry its own backend guard.
+#
+# "0" deletes the trap rather than documenting it: there is no list to forget,
+# and a script that asks for JAX gets JAX. This also matches the sibling
+# `autofit_workspace` release profile, which has always pinned "0" for the same
+# release-fidelity reason.
+#
+# NOTE this reasoning is specific to this repo. Do NOT copy it to
+# autolens_workspace_test / autogalaxy_workspace_test: their analyses come from
+# PyAutoGalaxy/PyAutoLens, which default to `use_jax=True`, so there "1" really
+# does force numpy across the board and is not a no-op.
+overrides: []
