@@ -211,7 +211,9 @@ true_centre = 50.0
 
 print()
 print(f"True centre = {true_centre}")
-print(f"Joint (Dynesty) centre: median = {joint_median}, sigma (1D, 1 sigma) = {joint_sigma}")
+print(
+    f"Joint (Dynesty) centre: median = {joint_median}, sigma (1D, 1 sigma) = {joint_sigma}"
+)
 print(f"EP (Laplace) centre:    mean = {ep_mean}, sigma = {ep_sigma}")
 print()
 
@@ -225,9 +227,9 @@ __Assertions__
 assert np.isfinite(ep_mean) and np.isfinite(ep_sigma) and ep_sigma > 0.0
 assert np.isfinite(joint_median) and np.isfinite(joint_sigma) and joint_sigma > 0.0
 
-assert abs(ep_mean - true_centre) < 3.0 * ep_sigma, (
-    f"EP centre mean ({ep_mean}) not within 3 sigma ({3.0 * ep_sigma}) of truth ({true_centre})"
-)
+assert (
+    abs(ep_mean - true_centre) < 3.0 * ep_sigma
+), f"EP centre mean ({ep_mean}) not within 3 sigma ({3.0 * ep_sigma}) of truth ({true_centre})"
 assert abs(joint_median - true_centre) < 3.0 * joint_sigma, (
     f"joint centre median ({joint_median}) not within 3 sigma ({3.0 * joint_sigma}) "
     f"of truth ({true_centre})"

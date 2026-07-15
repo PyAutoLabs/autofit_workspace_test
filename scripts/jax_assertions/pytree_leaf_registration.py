@@ -37,9 +37,7 @@ class WithIntArg:
 """
 __Model with an af.Model(int) sub-model (mirrors ShapeletPolar n/m)__
 """
-model = af.Model(
-    WithIntArg, x=af.UniformPrior(lower_limit=0.0, upper_limit=1.0)
-)
+model = af.Model(WithIntArg, x=af.UniformPrior(lower_limit=0.0, upper_limit=1.0))
 model.n = af.Model(int)
 
 collection = af.Collection(component=model)
@@ -59,9 +57,9 @@ for leaf_type in (int, float, str, bool, type(None), tuple):
     )
 
 # The real component class (has a __dict__) still IS registered.
-assert WithIntArg in pytrees._REGISTERED_INSTANCE_CLASSES, (
-    "WithIntArg should be registered — its instances carry a __dict__."
-)
+assert (
+    WithIntArg in pytrees._REGISTERED_INSTANCE_CLASSES
+), "WithIntArg should be registered — its instances carry a __dict__."
 
 
 """

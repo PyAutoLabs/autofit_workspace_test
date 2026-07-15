@@ -137,7 +137,9 @@ for key in TwoLatent.keys(analysis):
 assert surviving, "No latents survived — expected at least one finite latent."
 
 for key, value in surviving:
-    assert math.isfinite(value), f"Surviving latent '{key}' is not finite (got {value})."
+    assert math.isfinite(
+        value
+    ), f"Surviving latent '{key}' is not finite (got {value})."
 
 print(
     f"PASSED: latent summary survived arbitrary NaN injection "

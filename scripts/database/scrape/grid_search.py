@@ -128,9 +128,7 @@ except FileNotFoundError:
 
 agg = Aggregator.from_database(database_file, completed_only=False)
 
-agg.add_directory(
-    directory=output_path / "database" / "scrape" / name / dataset_name
-)
+agg.add_directory(directory=output_path / "database" / "scrape" / name / dataset_name)
 
 assert len(agg) > 0
 

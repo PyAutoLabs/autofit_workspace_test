@@ -110,11 +110,11 @@ __Assertions__
 
 The EP mean field must match the analytic conjugate posterior to rtol 1e-6.
 """
-assert np.isclose(ep_mean, posterior_mean, rtol=1e-6), (
-    f"EP mean ({ep_mean}) does not match analytic posterior mean ({posterior_mean}) to rtol 1e-6"
-)
-assert np.isclose(ep_sigma, posterior_sigma, rtol=1e-6), (
-    f"EP sigma ({ep_sigma}) does not match analytic posterior sigma ({posterior_sigma}) to rtol 1e-6"
-)
+assert np.isclose(
+    ep_mean, posterior_mean, rtol=1e-6
+), f"EP mean ({ep_mean}) does not match analytic posterior mean ({posterior_mean}) to rtol 1e-6"
+assert np.isclose(
+    ep_sigma, posterior_sigma, rtol=1e-6
+), f"EP sigma ({ep_sigma}) does not match analytic posterior sigma ({posterior_sigma}) to rtol 1e-6"
 
 print("ep_exact.py: PASS")

@@ -56,7 +56,9 @@ def _datasets():
         )
 
         data_list.append(
-            af.util.numpy_array_from_json(file_path=path.join(dataset_path, "data.json"))
+            af.util.numpy_array_from_json(
+                file_path=path.join(dataset_path, "data.json")
+            )
         )
         noise_map_list.append(
             af.util.numpy_array_from_json(
@@ -82,7 +84,9 @@ def _shared_gaussian_graph(analyses):
         gaussian.centre = centre
         gaussian.normalization = normalization
         gaussian.sigma = sigma
-        analysis_factor_list.append(af.AnalysisFactor(prior_model=gaussian, analysis=analysis))
+        analysis_factor_list.append(
+            af.AnalysisFactor(prior_model=gaussian, analysis=analysis)
+        )
 
     return af.FactorGraphModel(*analysis_factor_list)
 
