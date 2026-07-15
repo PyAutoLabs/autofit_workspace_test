@@ -52,3 +52,17 @@ overrides:
   # already satisfied by defaults.
   - pattern: "searches/BlackJAXNUTS"
     set: { PYAUTO_DISABLE_JAX: "0" }
+  # MultiStartAdam is a JAX-native gradient MAP search (jax.vmap of
+  # jax.value_and_grad over the autofit Fitness). Unlike the samplers below it
+  # hard-raises when the analysis is not on the JAX backend, so the disabling
+  # default turned it into a release-validation failure the moment it landed.
+  - pattern: "searches/MultiStartAdam"
+    set: { PYAUTO_DISABLE_JAX: "0" }
+  # The *_jax sampler scripts exist to validate the JAX likelihood path. They
+  # carry no hard backend guard, so under the disabling default they silently
+  # validated the NumPy path and passed vacuously — the same failure mode the
+  # jax_assertions/ note above describes, minus the loud failure.
+  - pattern: "searches/Dynesty_jax"
+    set: { PYAUTO_DISABLE_JAX: "0" }
+  - pattern: "searches/Nautilus_jax"
+    set: { PYAUTO_DISABLE_JAX: "0" }
