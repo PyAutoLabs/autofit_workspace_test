@@ -14,6 +14,8 @@ output). This can take up large amounts of hard-disk space.
 # %cd $workspace_path
 # print(f"Working Directory has been set to `{workspace_path}`")
 
+from pathlib import Path
+
 import autofit as af
 
 import os
@@ -111,10 +113,13 @@ result = search.fit(model=model, analysis=analysis, info={"hi": "there"})
 """
 __Database__
 """
+from autoconf.test_mode import with_test_mode_segment
 from autofit.aggregator.aggregator import Aggregator
 
+output_path = with_test_mode_segment(Path("output"))
+
 agg = Aggregator.from_directory(
-    directory=path.join("output", "database", "directory", dataset_name, name),
+    directory=output_path / "database" / "directory" / dataset_name / name,
 )
 
 assert len(agg) > 0

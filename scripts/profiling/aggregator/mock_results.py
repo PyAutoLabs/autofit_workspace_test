@@ -146,14 +146,23 @@ def stamp_results(
 ):
     """
     Copy the template `n_results` times under `results_root`, giving each copy a unique
-    `dataset_name` metadata entry so results are distinguishable and queryable.
+    `dataset_name` metadata entry and a unique `unique_tag` in its search.json.
+
+    The unique_tag matters for the sqlite database: fits are keyed by the identifier
+    hashed from (search, model, unique_tag), so identical copies would collapse to a
+    single database row.
     """
+    search_json_text = (template_leaf / "files" / "search.json").read_text()
+    search_dict = json.loads(search_json_text)
+
     for i in range(n_results):
         dataset_name = f"dataset_{i:04d}"
         destination = results_root / dataset_name / "fit"
         shutil.copytree(template_leaf, destination)
         with open(destination / "metadata", "a") as f:
             f.write(f"\ndataset_name={dataset_name}")
+        search_dict["arguments"]["unique_tag"] = dataset_name
+        (destination / "files" / "search.json").write_text(json.dumps(search_dict))
         if zip_results:
             _zip_directory(destination)
 
