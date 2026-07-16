@@ -12,6 +12,8 @@ database built via a scrape.
 # %cd $workspace_path
 # print(f"Working Directory has been set to `{workspace_path}`")
 
+from pathlib import Path
+
 import autofit as af
 
 import os
@@ -127,19 +129,22 @@ result_list = search.fit(
 """
 __Database__
 """
+from autoconf.test_mode import with_test_mode_segment
 from autofit.database.aggregator import Aggregator
 
-database_file = "database_scrape_general.sqlite"
+database_file = "database_scrape_multi_analysis.sqlite"
+
+output_path = with_test_mode_segment(Path("output"))
 
 try:
-    os.remove(path.join("output", database_file))
+    os.remove(output_path / database_file)
 except FileNotFoundError:
     pass
 
 
 agg = Aggregator.from_database(path.join(database_file))
 agg.add_directory(
-    directory=path.join("output", "database", "scrape", dataset_name, name)
+    directory=output_path / "database" / "scrape" / dataset_name / name
 )
 
 assert len(agg) > 0
