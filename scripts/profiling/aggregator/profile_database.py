@@ -55,6 +55,10 @@ AXES_QUICK = {
     "n_samples": [100, 1000],
 }
 
+# A samples.csv representative of a production lens-model SLaM stage: ~10k rows x
+# 21 columns (~9 MB), the PYAUTO_TEST_MODE_SAMPLES parity target (PyAutoFit#1378).
+REPRESENTATIVE = {"n_results": 25, "n_samples": 10000, "n_gaussians": 6}
+
 
 def grid_cells(axes: dict, base: dict) -> list:
     cells = []
@@ -158,6 +162,11 @@ if __name__ == "__main__":
     parser.add_argument("--quick", action="store_true")
     parser.add_argument("--keep", action="store_true")
     parser.add_argument("--label", type=str, default="")
+    parser.add_argument(
+        "--representative",
+        action="store_true",
+        help="add the production-lens-scale cell (10k samples x 18-param model)",
+    )
     args = parser.parse_args()
 
     axes = dict(AXES_QUICK if args.quick else AXES)
@@ -168,8 +177,12 @@ if __name__ == "__main__":
         axes = {"n_results": [5]}
         base = {"n_results": 5, "n_samples": 50, "n_gaussians": 1}
 
+    cells = grid_cells(axes=axes, base=base)
+    if args.representative and not os.environ.get("PYAUTO_TEST_MODE"):
+        cells.append(dict(REPRESENTATIVE))
+
     rows = []
-    for cell in grid_cells(axes=axes, base=base):
+    for cell in cells:
         print(f"profiling {cell} ...", flush=True)
         rows.append(profile_cell(cell, keep=args.keep))
 
