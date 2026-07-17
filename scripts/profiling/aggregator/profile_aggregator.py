@@ -191,6 +191,11 @@ if __name__ == "__main__":
     parser.add_argument("--zip", action="store_true", dest="zip_results")
     parser.add_argument("--keep", action="store_true", help="keep mock results on disk")
     parser.add_argument("--label", type=str, default="", help="tag for the JSON output")
+    parser.add_argument(
+        "--representative",
+        action="store_true",
+        help="add the production-lens-scale cell (10k samples x 18-param model)",
+    )
     args = parser.parse_args()
 
     axes = dict(AXES_QUICK if args.quick else AXES)
@@ -205,8 +210,14 @@ if __name__ == "__main__":
     if args.n_results_max is not None:
         axes["n_results"] = axes["n_results"] + [args.n_results_max]
 
+    cells = grid_cells(axes=axes, base=base)
+    if args.representative and not os.environ.get("PYAUTO_TEST_MODE"):
+        # ~10k rows x 21 columns (~9 MB samples.csv) — the PYAUTO_TEST_MODE_SAMPLES
+        # production-parity target (PyAutoFit#1378).
+        cells.append({"n_results": 25, "n_samples": 10000, "n_gaussians": 6})
+
     rows = []
-    for cell in grid_cells(axes=axes, base=base):
+    for cell in cells:
         print(f"profiling {cell} ...", flush=True)
         rows.append(profile_cell(cell, zip_results=args.zip_results, keep=args.keep))
 

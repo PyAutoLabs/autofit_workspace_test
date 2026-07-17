@@ -5,11 +5,13 @@ Profiling: Mock Aggregator Results
 Fabricates search-output directories that the real `af.Aggregator` accepts, without
 running a non-linear search.
 
-One template result per (n_gaussians, n_samples) configuration is written through the
-library's own `DirectoryPaths` machinery (`save_all` / `save_samples` /
-`save_samples_summary`), so file formats always track the installed autofit. The
-template is then stamped `n_results` times with `shutil.copytree`, which makes
-thousands of mock results in seconds.
+One template result per (n_gaussians, n_samples) configuration is written by a real
+search `fit` under the test-mode sampler bypass (`PYAUTO_TEST_MODE=3` +
+`PYAUTO_TEST_MODE_SAMPLES=N`, PyAutoFit#1381), so every file — including a
+`samples.csv` whose row count and byte size are representative of a production
+sampler run — is produced by the canonical library write path. The template is then
+stamped `n_results` times with `shutil.copytree`, which makes thousands of mock
+results in seconds.
 
 Run from the `autofit_workspace_test` root, e.g.:
 
@@ -18,9 +20,11 @@ Run from the `autofit_workspace_test` root, e.g.:
 
 import argparse
 import json
+import os
 import shutil
 import time
 import zipfile
+from contextlib import contextmanager
 from pathlib import Path
 
 import numpy as np
@@ -28,9 +32,31 @@ from PIL import Image
 
 from autoconf import conf
 import autofit as af
-from autofit.non_linear.paths.directory import DirectoryPaths
 
 DEFAULT_ROOT = Path("output") / "profiling_aggregator" / "mock"
+
+
+@contextmanager
+def test_mode_bypass(n_samples: int):
+    """
+    Run a real search `fit` as an instant sampler bypass writing `n_samples`
+    size-realistic samples (PYAUTO_TEST_MODE_SAMPLES, minimum 4). Mode 3 skips the
+    likelihood call entirely — sample values are irrelevant for load profiling.
+    """
+    previous = {
+        key: os.environ.get(key)
+        for key in ("PYAUTO_TEST_MODE", "PYAUTO_TEST_MODE_SAMPLES")
+    }
+    os.environ["PYAUTO_TEST_MODE"] = "3"
+    os.environ["PYAUTO_TEST_MODE_SAMPLES"] = str(max(n_samples, 4))
+    try:
+        yield
+    finally:
+        for key, value in previous.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
 
 
 def model_from(n_gaussians: int) -> af.Collection:
@@ -48,42 +74,6 @@ def model_from(n_gaussians: int) -> af.Collection:
     return af.Collection(**gaussians)
 
 
-def samples_from(model, n_samples: int, seed: int = 1) -> af.SamplesNest:
-    """
-    Random samples for the model. Parameter values are uniform draws in (0, 1) — the
-    numbers are immaterial for profiling, only the row/column counts matter.
-    """
-    rng = np.random.default_rng(seed)
-    n_params = model.prior_count
-
-    parameter_lists = rng.uniform(0.01, 0.99, size=(n_samples, n_params)).tolist()
-    log_likelihood_list = np.sort(rng.normal(-1000.0, 50.0, n_samples)).tolist()
-    log_prior_list = [0.0] * n_samples
-    weight = 1.0 / n_samples
-    weight_list = [weight] * n_samples
-
-    sample_list = af.Sample.from_lists(
-        model=model,
-        parameter_lists=parameter_lists,
-        log_likelihood_list=log_likelihood_list,
-        log_prior_list=log_prior_list,
-        weight_list=weight_list,
-    )
-
-    return af.SamplesNest(
-        model=model,
-        sample_list=sample_list,
-        samples_info={
-            "number_live_points": 50,
-            "log_evidence": -1000.0,
-            "total_samples": n_samples,
-            "total_accepted_samples": n_samples,
-            "total_iterations": n_samples,
-            "time": "1.0",
-        },
-    )
-
-
 def write_template(
     root: Path,
     n_gaussians: int,
@@ -92,7 +82,7 @@ def write_template(
     with_latent: bool = False,
 ) -> Path:
     """
-    Write one full search-output directory via the real paths machinery and return the
+    Write one full search-output directory via a test-mode bypass fit and return the
     leaf directory (the one containing the `metadata` file).
     """
     template_prefix = f"_template/g{n_gaussians}_s{n_samples}"
@@ -100,30 +90,36 @@ def write_template(
     conf.instance.push(new_path="config", output_path=str(root))
 
     model = model_from(n_gaussians)
-    samples = samples_from(model=model, n_samples=n_samples)
-    search = af.DynestyStatic(name="fit")
+    analysis = af.ex.Analysis(data=np.ones(10), noise_map=np.ones(10))
 
-    paths = DirectoryPaths(name="fit", path_prefix=template_prefix)
-    paths.model = model
-    paths.search = search
+    # A stale template would append duplicate metadata lines (the file is opened in
+    # append mode), so remove any previous template for this config first.
+    for candidate in (
+        root / "test_mode" / Path(template_prefix),
+        root / Path(template_prefix),
+    ):
+        if candidate.exists():
+            shutil.rmtree(candidate)
 
-    if Path(paths.output_path).exists():
-        shutil.rmtree(paths.output_path)
+    with test_mode_bypass(n_samples=n_samples):
+        search = af.DynestyStatic(
+            name="fit", path_prefix=template_prefix, number_of_cores=1
+        )
+        result = search.fit(model=model, analysis=analysis)
 
-    paths.save_all(info={})
-    paths.save_samples(samples=samples)
-    paths.save_samples_summary(samples_summary=samples.summary())
-    if with_latent:
-        paths.save_latent_samples(latent_samples=samples)
-    paths.completed()
+        # Resolve all paths inside the bypass context — the test-mode env var adds a
+        # path segment, so a lazy access after the env restore points elsewhere.
+        paths = search.paths
+        if with_latent:
+            paths.save_latent_samples(latent_samples=result.samples)
 
-    if with_images:
-        image_path = paths.image_path
-        image = Image.new("RGB", (64, 64))
-        for name in ("subplot_fit", "corner_pdf", "search_internal"):
-            image.save(image_path / f"{name}.png")
+        if with_images:
+            image_path = paths.image_path
+            image = Image.new("RGB", (64, 64))
+            for name in ("subplot_fit", "corner_pdf", "search_internal"):
+                image.save(image_path / f"{name}.png")
 
-    return Path(paths.output_path)
+        return Path(paths.output_path)
 
 
 def _zip_directory(directory: Path):
