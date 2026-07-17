@@ -6,25 +6,39 @@ for per-script env var overrides, then runs each listed script with the
 appropriate environment. Continues through failures and exits non-zero
 if any script failed.
 
+The env resolution itself is NOT implemented here: it is PyAutoBuild's
+`autobuild/env_config.py`, imported below. This file used to carry a copy, and
+the copy had already drifted (its `load_env_config` hardcoded
+`config/build/env_vars.yaml`, so the PR gate was structurally unable to read
+the release profile — the seed incident's failure mode 4/7). One resolver
+means the PR gate and the release runner cannot disagree about what a script's
+environment is. See PyAutoBuild docs/env_profile_redesign.md §5 (#161 step 2).
+
 Mirrors the logic of the `/smoke-test` skill so CI and local runs stay
 in sync.
 """
 
 from __future__ import annotations
 
-import os
 import subprocess
 import sys
 import time
 from pathlib import Path
-
-import yaml
 
 
 WORKSPACE = Path(__file__).resolve().parents[2]
 SMOKE_FILE = WORKSPACE / "smoke_tests.txt"
 ENV_VARS_FILE = WORKSPACE / "config" / "build" / "env_vars.yaml"
 SCRIPTS_DIR = WORKSPACE / "scripts"
+
+# CI puts PyAutoBuild/autobuild on PYTHONPATH (PyAutoHeart's reusable
+# smoke-tests.yml clones it alongside the dependency chain); for local runs,
+# fall back to the sibling checkout.
+try:
+    from env_config import build_env_for_script, load_env_config
+except ImportError:  # pragma: no cover - local-run fallback
+    sys.path.insert(0, str(WORKSPACE.parent / "PyAutoBuild" / "autobuild"))
+    from env_config import build_env_for_script, load_env_config
 
 
 def load_smoke_scripts() -> list[str]:
@@ -37,33 +51,20 @@ def load_smoke_scripts() -> list[str]:
     return scripts
 
 
-def load_env_config() -> dict:
+def load_cfg() -> dict | None:
+    """Parsed env profile, or None when the workspace has none.
+
+    None flows through build_env_for_script -> None -> subprocess inherits the
+    parent environment, which is what the old local copy's empty-config path
+    did by hand.
+    """
     if not ENV_VARS_FILE.exists():
-        return {"defaults": {}, "overrides": []}
-    return yaml.safe_load(ENV_VARS_FILE.read_text()) or {}
+        return None
+    return load_env_config(ENV_VARS_FILE)
 
 
-def pattern_matches(pattern: str, script_path: str) -> bool:
-    if "/" in pattern:
-        return pattern in script_path
-    return Path(script_path).stem == pattern
-
-
-def build_env(script_rel: str, cfg: dict) -> dict:
-    env = os.environ.copy()
-    defaults = cfg.get("defaults") or {}
-    env.update({k: str(v) for k, v in defaults.items()})
-    for override in cfg.get("overrides") or []:
-        if pattern_matches(override["pattern"], script_rel):
-            for key in override.get("unset", []):
-                env.pop(key, None)
-            for key, val in (override.get("set") or {}).items():
-                env[key] = str(val)
-    return env
-
-
-def run_one(script_rel: str, cfg: dict) -> tuple[str, int, float, str]:
-    env = build_env(script_rel, cfg)
+def run_one(script_rel: str, cfg: dict | None) -> tuple[str, int, float, str]:
+    env = build_env_for_script(Path(script_rel), cfg)
     script_path = SCRIPTS_DIR / script_rel
     t0 = time.time()
     result = subprocess.run(
@@ -86,7 +87,7 @@ def main() -> int:
     if not scripts:
         print("No smoke test scripts listed.")
         return 0
-    cfg = load_env_config()
+    cfg = load_cfg()
 
     print(f"Running {len(scripts)} smoke test script(s) from {SMOKE_FILE.name}\n")
     failures: list[tuple[str, int, str]] = []
