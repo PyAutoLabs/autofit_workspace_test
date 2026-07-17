@@ -114,12 +114,37 @@ def write_template(
             paths.save_latent_samples(latent_samples=result.samples)
 
         if with_images:
-            image_path = paths.image_path
-            image = Image.new("RGB", (64, 64))
-            for name in ("subplot_fit", "corner_pdf", "search_internal"):
-                image.save(image_path / f"{name}.png")
+            _write_image_and_fits_payloads(paths)
 
         return Path(paths.output_path)
+
+
+def _write_image_and_fits_payloads(paths):
+    """
+    Write the payloads the workflow aggregators consume: a panelled subplot image
+    (AggregateImages extracts panels from a 4x3 grid, matching the real subplot_fit
+    convention) and a multi-HDU fits file (AggregateFITS extracts HDUs by EXTNAME).
+    """
+    import numpy as np
+    from astropy.io import fits
+
+    panel_w, panel_h = 120, 90
+    image = Image.new("RGB", (4 * panel_w, 3 * panel_h))
+    image.save(paths.image_path / "subplot_fit.png")
+    Image.new("RGB", (64, 64)).save(paths.image_path / "corner_pdf.png")
+
+    hdu_list = fits.HDUList([fits.PrimaryHDU()])
+    rng = np.random.default_rng(0)
+    for extname in (
+        "MODEL_IMAGE",
+        "RESIDUAL_MAP",
+        "NORMALIZED_RESIDUAL_MAP",
+        "CHI_SQUARED_MAP",
+    ):
+        hdu = fits.ImageHDU(data=rng.normal(size=(100, 100)).astype("float32"))
+        hdu.header["EXTNAME"] = extname
+        hdu_list.append(hdu)
+    hdu_list.writeto(paths._files_path / "fit.fits", overwrite=True)
 
 
 def _zip_directory(directory: Path):
