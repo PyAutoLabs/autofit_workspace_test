@@ -39,9 +39,31 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
+from enum import Enum
+
 import autofit as af
 from autofit.aggregator.aggregator import Aggregator
 from mock_results import generate_mock_results
+
+
+class SubplotFit(Enum):
+    """
+    Panel coordinates in the mock subplot_fit.png (4x3 grid) — the png_make pattern.
+    """
+
+    Data = (0, 0)
+    ModelData = (3, 0)
+    ResidualMap = (0, 2)
+    ChiSquaredMap = (2, 2)
+
+
+class FITSFit(Enum):
+    """
+    HDU EXTNAMEs in the mock fit.fits — the fits_make pattern.
+    """
+
+    ModelData = "MODEL_IMAGE"
+    ResidualMap = "RESIDUAL_MAP"
 
 RESULTS_PATH = Path("output") / "profiling_aggregator" / "results"
 
@@ -147,6 +169,35 @@ def profile_cell(cell: dict, zip_results: bool, keep: bool) -> dict:
         agg_csv.save(results_root.parent / "aggregate.csv")
 
     timings["aggregate_csv"] = timed(aggregate_csv)
+
+    agg = fresh_agg()
+
+    def aggregate_images():
+        agg_images = af.AggregateImages(agg)
+        agg_images.output_to_folder(
+            results_root.parent / "png",
+            name="dataset_name",
+            subplots=[
+                SubplotFit.Data,
+                SubplotFit.ModelData,
+                SubplotFit.ResidualMap,
+                SubplotFit.ChiSquaredMap,
+            ],
+        )
+
+    timings["aggregate_images"] = timed(aggregate_images)
+
+    agg = fresh_agg()
+
+    def aggregate_fits():
+        agg_fits = af.AggregateFITS(agg)
+        agg_fits.output_to_folder(
+            results_root.parent / "fits",
+            name="dataset_name",
+            hdus=[FITSFit.ModelData, FITSFit.ResidualMap],
+        )
+
+    timings["aggregate_fits"] = timed(aggregate_fits)
 
     if not keep:
         shutil.rmtree(results_root.parent)
