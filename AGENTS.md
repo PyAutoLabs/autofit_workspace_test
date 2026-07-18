@@ -72,7 +72,7 @@ write from a header skim silently deletes every section below the header.
 
 - Source libs: `../PyAutoFit`, `../PyAutoConf`.
 - `../autofit_workspace` — the user-facing workspace; `../HowToFit` — the tutorial series.
-- `../PyAutoBuild` — CI / build tooling.
+- `../PyAutoHands` — CI / build tooling.
 
 ## Task Workflows
 
