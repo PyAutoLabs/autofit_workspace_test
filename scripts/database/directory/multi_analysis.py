@@ -128,7 +128,7 @@ result_list = search.fit(
 """
 __Database__
 """
-from autoconf.test_mode import with_test_mode_segment
+from autofit import with_test_mode_segment
 from autofit.aggregator.aggregator import Aggregator
 
 output_path = with_test_mode_segment(Path("output"))
