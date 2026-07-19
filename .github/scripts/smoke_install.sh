@@ -7,8 +7,8 @@
 set -e
 
 if [ "$PYTHON_VERSION" = "3.12" ]; then
-  pip install ./PyAutoConf "./PyAutoFit[optional]"
+  pip install ./PyAutoNerves "./PyAutoFit[optional]"
 else
-  pip install ./PyAutoConf ./PyAutoFit
+  pip install ./PyAutoNerves ./PyAutoFit
 fi
 pip install nautilus-sampler

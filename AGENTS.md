@@ -4,7 +4,7 @@ This is the integration-test suite for **PyAutoFit**, run on the build server to
 library works end-to-end. It is **not** a user-facing workspace — see `../autofit_workspace` for
 examples and tutorials. These are the canonical, agent-agnostic instructions for this repo.
 
-Dependencies: `autofit` (and `autoconf`).
+Dependencies: `autofit` (and `autonerves`).
 
 ## Repository Structure
 
@@ -70,7 +70,7 @@ write from a header skim silently deletes every section below the header.
 
 ## Related Repos
 
-- Source libs: `../PyAutoFit`, `../PyAutoConf`.
+- Source libs: `../PyAutoFit`, `../PyAutoNerves`.
 - `../autofit_workspace` — the user-facing workspace; `../HowToFit` — the tutorial series.
 - `../PyAutoHands` — CI / build tooling.
 
