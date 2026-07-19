@@ -14,7 +14,7 @@ samples ended up with different ``Sample.kwargs`` key sets and
 This script uses a two-latent ``af.ex.Analysis`` subclass (the shipped example
 analysis has a single latent; two latents exercise the additional
 ``zip(LATENT_KEYS, values)`` mis-alignment that a dropped column causes). The
-``PYAUTO_LATENT_NAN_INJECT=stride:N`` knob (``autoconf.test_mode``) sets NaN on
+``PYAUTO_LATENT_NAN_INJECT=stride:N`` knob (``autonerves.test_mode``) sets NaN on
 latent column 0 (``gaussian.fwhm``) for every sample whose absolute index is a
 non-zero multiple of ``N``. With ``N >= batch_size`` batch 0 stays finite and
 seeds the model with both keys; a later batch loses column 0.
