@@ -27,7 +27,7 @@ from os import path
 
 cwd = os.getcwd()
 
-from autoconf import conf
+from autofit import conf
 
 conf.instance.push(new_path=path.join(cwd, "scripts", "features", "config"))
 

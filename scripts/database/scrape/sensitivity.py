@@ -27,7 +27,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from os import path
 from pathlib import Path
-from autoconf.test_mode import with_test_mode_segment
+from autofit import with_test_mode_segment
 
 """
 ___Session__

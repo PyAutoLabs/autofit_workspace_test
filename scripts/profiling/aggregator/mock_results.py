@@ -30,7 +30,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from autoconf import conf
+from autofit import conf
 import autofit as af
 
 DEFAULT_ROOT = Path("output") / "profiling_aggregator" / "mock"

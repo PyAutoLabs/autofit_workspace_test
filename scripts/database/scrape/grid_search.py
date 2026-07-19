@@ -17,7 +17,7 @@ import os
 from os import path
 from pathlib import Path
 import numpy as np
-from autoconf.test_mode import with_test_mode_segment
+from autofit import with_test_mode_segment
 
 """
 ___Session__
