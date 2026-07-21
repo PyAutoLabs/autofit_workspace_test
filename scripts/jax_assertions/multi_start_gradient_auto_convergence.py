@@ -91,11 +91,21 @@ __A. Early stopping lands at the basin__
 
 ``n_steps=300`` is a generous ceiling; auto-convergence (on by default) should
 stop the fit well before it, once the global-best figure-of-merit has plateaued.
-``NullPaths`` (no ``name`` / ``path_prefix``) keeps the run off disk.
+The fit is written to disk (``name`` / ``path_prefix``) so the results-DB
+round-trip in Part C can reload this same result.
 """
 n_steps = 300
 
-search = af.MultiStartAdam(n_starts=16, n_steps=n_steps, learning_rate=0.5)
+name = "multi_start_gradient_auto_convergence"
+path_prefix = "jax_assertions"
+
+search = af.MultiStartAdam(
+    name=name,
+    path_prefix=path_prefix,
+    n_starts=16,
+    n_steps=n_steps,
+    learning_rate=0.5,
+)
 
 # Auto-convergence is on by default.
 assert search.convergence.check_for_convergence is True
@@ -165,3 +175,44 @@ print(
     f"({len(hlo_cold)} chars) — the persistent compilation cache hits on recall, "
     "so recall never recompiles."
 )
+
+"""
+__C. Results-DB round-trip of the auto-convergence outcome__
+
+The phase-2 results contract adds ``converged`` / ``stop_reason`` / the
+convergence settings / the ``fom_history`` trace to ``samples_info``. Reload the
+Part-A fit (written to disk above) through the directory aggregator and assert
+those survive serialisation — so a user inspecting a stored result can see whether
+a run converged and verify the plateau.
+"""
+from pathlib import Path
+
+from autofit import with_test_mode_segment
+from autofit.aggregator.aggregator import Aggregator
+
+output_path = with_test_mode_segment(Path("output"))
+
+agg = Aggregator.from_directory(directory=output_path / path_prefix / name)
+
+assert len(agg) > 0, "no results loaded from the directory aggregator"
+
+for samples in agg.values("samples"):
+    info = samples.samples_info
+
+    assert info["converged"] is True, info.get("stop_reason")
+    assert info["stop_reason"] == "converged", info["stop_reason"]
+
+    convergence = info["convergence"]
+    assert convergence["check_for_convergence"] is True
+
+    fom_history = info["fom_history"]
+    assert fom_history is not None, "fom_history trace did not round-trip"
+    assert len(fom_history) == info["total_steps"], (len(fom_history), info["total_steps"])
+    assert len(fom_history) < n_steps, "early-stopped run should be shorter than the ceiling"
+
+    print(
+        "Results-DB round-trip OK: "
+        f"converged={info['converged']}, stop_reason={info['stop_reason']}, "
+        f"fom_history trace length {len(fom_history)} (ceiling {n_steps})."
+    )
+
