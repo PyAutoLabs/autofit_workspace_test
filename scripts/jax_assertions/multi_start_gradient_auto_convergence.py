@@ -207,12 +207,16 @@ for samples in agg.values("samples"):
 
     fom_history = info["fom_history"]
     assert fom_history is not None, "fom_history trace did not round-trip"
-    assert len(fom_history) == info["total_steps"], (len(fom_history), info["total_steps"])
-    assert len(fom_history) < n_steps, "early-stopped run should be shorter than the ceiling"
+    assert len(fom_history) == info["total_steps"], (
+        len(fom_history),
+        info["total_steps"],
+    )
+    assert (
+        len(fom_history) < n_steps
+    ), "early-stopped run should be shorter than the ceiling"
 
     print(
         "Results-DB round-trip OK: "
         f"converged={info['converged']}, stop_reason={info['stop_reason']}, "
         f"fom_history trace length {len(fom_history)} (ceiling {n_steps})."
     )
-

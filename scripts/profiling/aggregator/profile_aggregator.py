@@ -65,6 +65,7 @@ class FITSFit(Enum):
     ModelData = "MODEL_IMAGE"
     ResidualMap = "RESIDUAL_MAP"
 
+
 RESULTS_PATH = Path("output") / "profiling_aggregator" / "results"
 
 # values("samples") holds every loaded Samples in memory (SearchOutput caches them),
@@ -125,9 +126,9 @@ def profile_cell(cell: dict, zip_results: bool, keep: bool) -> dict:
         """
         with contextlib.redirect_stdout(io.StringIO()):
             agg = Aggregator.from_directory(results_root)
-        assert len(agg) == cell["n_results"], (
-            f"Aggregator found {len(agg)} results, expected {cell['n_results']}"
-        )
+        assert (
+            len(agg) == cell["n_results"]
+        ), f"Aggregator found {len(agg)} results, expected {cell['n_results']}"
         return agg
 
     # Warm up one-off costs (imports triggered by the first summary/search load) so
@@ -151,9 +152,7 @@ def profile_cell(cell: dict, zip_results: bool, keep: bool) -> dict:
     with contextlib.redirect_stdout(io.StringIO()):
         agg = fresh_agg()[:SAMPLES_STAGE_CAP]
     samples_stage_results = len(agg)
-    timings["values_samples"] = timed(
-        lambda: deque(agg.values("samples"), maxlen=0)
-    )
+    timings["values_samples"] = timed(lambda: deque(agg.values("samples"), maxlen=0))
 
     agg = fresh_agg()
     timings["query_dataset_name"] = timed(
@@ -277,8 +276,7 @@ if __name__ == "__main__":
     RESULTS_PATH.mkdir(parents=True, exist_ok=True)
     label = f"_{args.label}" if args.label else ""
     output_file = (
-        RESULTS_PATH
-        / f"profile_{datetime.now().strftime('%Y%m%d_%H%M%S')}{label}.json"
+        RESULTS_PATH / f"profile_{datetime.now().strftime('%Y%m%d_%H%M%S')}{label}.json"
     )
     output_file.write_text(
         json.dumps(

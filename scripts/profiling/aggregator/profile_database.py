@@ -92,9 +92,9 @@ def profile_cell(cell: dict, keep: bool) -> dict:
 
     timings["database_build"] = timed(database_build)
     db_agg = aggregator["db"]
-    assert len(db_agg) == cell["n_results"], (
-        f"Database ingested {len(db_agg)} fits, expected {cell['n_results']}"
-    )
+    assert (
+        len(db_agg) == cell["n_results"]
+    ), f"Database ingested {len(db_agg)} fits, expected {cell['n_results']}"
 
     unique_tag = db_agg.search.unique_tag
     timings["database_query_unique_tag"] = timed(

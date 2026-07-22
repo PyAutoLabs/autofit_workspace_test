@@ -95,9 +95,9 @@ def assert_gradient_is_fine_when_the_masked_derivative_is_finite():
     """
     call = _guarded(_finite_derivative_likelihood)
     grad = jax.grad(call)(-1.0)
-    assert jnp.isfinite(grad), (
-        "a finite masked derivative must not trigger the 0 * NaN trap"
-    )
+    assert jnp.isfinite(
+        grad
+    ), "a finite masked derivative must not trigger the 0 * NaN trap"
 
 
 def assert_output_side_double_where_does_not_fix_it():
