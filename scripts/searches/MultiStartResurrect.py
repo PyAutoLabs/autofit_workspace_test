@@ -109,7 +109,18 @@ assert info_off["resurrect"] is False
 assert info_on["resurrect"] is True
 
 # Safety property: resurrection never moves the winning basin.
-assert np.allclose(off, on), (off, on)
+#
+# Basin-level, not bitwise. A resurrection redraws its start's parameters from the
+# start band and reinitialises that start's optimizer state, so it consumes RNG
+# draws the `resurrect=False` arm never takes. Once one fires (and on this dataset
+# one does — n_resurrections is 0 off / 1 on), the two arms' random streams diverge
+# and their converged MAPs differ in the last few significant figures. That is the
+# knob working as designed, not a regression, so asserting near-exact equality here
+# (np.allclose's default rtol=1e-5) would test the RNG rather than the safety
+# property. rtol=1e-3 still pins agreement to ~4 significant figures — orders of
+# magnitude tighter than the basin-recovery tolerances asserted above — so a start
+# genuinely landing in a different basin still fails loudly.
+assert np.allclose(off, on, rtol=1e-3), (off, on)
 
 print(
     "MultiStart resurrection: resurrect on/off recover the identical truth "
