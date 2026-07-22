@@ -20,7 +20,11 @@ python slam/imaging/no_lens_light/source_lp/mass_total/no_hyper.py
 
 # Workspace Version
 
-This version of the workspace are built and tested for using **PyAutoFit v2026.5.14.1**.
+These scripts track PyAutoFit `main` and the **latest PyAutoFit release** — they are run by CI
+against both, so no exact version is pinned here. A named pin in this README was owned by
+nobody after the release runner stopped bumping it, and went ~2 months stale; the user-facing
+workspaces carry the authoritative compatibility floor instead
+(`version.minimum_library_version` in their `config/general.yaml`).
 
 # Build Configuration
 
