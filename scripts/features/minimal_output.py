@@ -20,9 +20,7 @@ The following settings are listed as false in the `output.yaml` file, meaning th
 outptu (which assertions test for below):
 
 covariance
-"""
 
-"""
 __Env__
 
 Test-harness configuration (PyAutoHands docs/env_profile_redesign.md §10).

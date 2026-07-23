@@ -34,9 +34,7 @@ itself is separately certified (autolens_profiling/jax_compile, PyAutoConf #128)
 
 Two pytree-registration calls (as in ``MultiStartAdam.py``) let
 ``model.instance_from_vector`` flow through ``jax.jit``.
-"""
 
-"""
 __Env__
 
 Test-harness configuration (PyAutoHands docs/env_profile_redesign.md §10).

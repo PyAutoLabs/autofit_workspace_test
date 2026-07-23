@@ -18,9 +18,7 @@ script reproduces the exact structure without autogalaxy: a model whose
 component carries an ``af.Model(int)`` sub-model.
 
 Previously: N/A (new guard).
-"""
 
-"""
 __Env__
 
 Test-harness configuration (PyAutoHands docs/env_profile_redesign.md §10).

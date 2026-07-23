@@ -14,9 +14,7 @@ numpy-only — cross-xp checks live here in ``autofit_workspace_test``.
 Run from the workspace root:
 
     python scripts/jax_assertions/priors_xp_dispatch.py
-"""
 
-"""
 __Env__
 
 Test-harness configuration (PyAutoHands docs/env_profile_redesign.md §10).

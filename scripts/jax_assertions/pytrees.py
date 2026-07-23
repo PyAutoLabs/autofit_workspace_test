@@ -14,9 +14,7 @@ the legacy direct-registration path used before
 public API path).
 
 Previously: ``test_autofit/jax/test_pytrees.py``.
-"""
 
-"""
 __Env__
 
 Test-harness configuration (PyAutoHands docs/env_profile_redesign.md §10).

@@ -3,9 +3,7 @@ Feature: Database
 =================
 
 Tests that general results can be loaded from hard-disk via a database built via a scrape.
-"""
 
-"""
 __Env__
 
 Test-harness configuration (PyAutoHands docs/env_profile_redesign.md §10).

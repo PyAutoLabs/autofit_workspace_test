@@ -20,9 +20,7 @@ Two pytree-registration calls (as in ``Nautilus_jax.py``) let
    and the prior classes once per process.
  - ``register_model(model)`` registers each concrete ``cls`` in the model
    (here ``af.ex.Gaussian``) so its instances become traceable pytrees.
-"""
 
-"""
 __Env__
 
 Test-harness configuration (PyAutoHands docs/env_profile_redesign.md §10).
