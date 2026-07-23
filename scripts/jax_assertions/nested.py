@@ -19,9 +19,16 @@ key path so the two utility families can be compared directly.
 
 Previously: ``test_autofit/graphical/functionality/test_nested.py``.
 """
-# ENV: jax
-# JAX assertion scripts test JAX behaviour; disabling JAX makes their
-# assertions vacuous.
+
+"""
+__Env__
+
+Test-harness configuration (PyAutoHands docs/env_profile_redesign.md §10).
+JAX assertion scripts test JAX behaviour; disabling JAX makes their
+assertions vacuous.
+
+ENV: jax
+"""
 
 import collections
 

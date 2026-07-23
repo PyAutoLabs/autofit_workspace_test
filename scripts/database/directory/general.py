@@ -7,9 +7,16 @@ Tests that general results can be loaded from hard-disk via directory aggregatio
 This script outputs all files which can be associated with a model-fit (e.g. samples, full samples summary, search
 output). This can take up large amounts of hard-disk space.
 """
-# ENV: real_search
-# Asserts len(agg) > 0; needs a real sampler run (TEST_MODE=2 bypass
-# leaves the aggregator empty).
+
+"""
+__Env__
+
+Test-harness configuration (PyAutoHands docs/env_profile_redesign.md §10).
+Asserts len(agg) > 0; needs a real sampler run (TEST_MODE=2 bypass leaves
+the aggregator empty).
+
+ENV: real_search
+"""
 
 # %matplotlib inline
 # from pyprojroot import here

@@ -29,9 +29,16 @@ References:
  - https://github.com/blackjax-devs/blackjax
  - https://arxiv.org/abs/1111.4246  (the original NUTS paper)
 """
-# ENV: real_search jax
-# Gradient MCMC that needs JAX; TEST_MODE=2 bypass returns the prior
-# midpoint and fails truth-recovery asserts. Run the real sampler.
+
+"""
+__Env__
+
+Test-harness configuration (PyAutoHands docs/env_profile_redesign.md §10).
+Gradient MCMC that needs JAX; TEST_MODE=2 bypass returns the prior midpoint
+and fails truth-recovery asserts. Run the real sampler.
+
+ENV: real_search jax
+"""
 
 import numpy as np
 from os import path

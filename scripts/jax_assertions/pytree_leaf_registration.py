@@ -19,9 +19,16 @@ component carries an ``af.Model(int)`` sub-model.
 
 Previously: N/A (new guard).
 """
-# ENV: jax
-# JAX assertion scripts test JAX behaviour; disabling JAX makes their
-# assertions vacuous.
+
+"""
+__Env__
+
+Test-harness configuration (PyAutoHands docs/env_profile_redesign.md §10).
+JAX assertion scripts test JAX behaviour; disabling JAX makes their
+assertions vacuous.
+
+ENV: jax
+"""
 
 import jax
 

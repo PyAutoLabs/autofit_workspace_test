@@ -17,9 +17,16 @@ that PyAutoGalaxy and PyAutoLens use to make their ``Model`` /
 
 Previously: ``test_autofit/jax/test_enable_pytrees.py``.
 """
-# ENV: jax
-# JAX assertion scripts test JAX behaviour; disabling JAX makes their
-# assertions vacuous.
+
+"""
+__Env__
+
+Test-harness configuration (PyAutoHands docs/env_profile_redesign.md §10).
+JAX assertion scripts test JAX behaviour; disabling JAX makes their
+assertions vacuous.
+
+ENV: jax
+"""
 
 import jax
 import jax.numpy as jnp
