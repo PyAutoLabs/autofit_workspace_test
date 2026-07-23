@@ -11,9 +11,7 @@ support pure numpy; assertions that exercise jax-only behaviour live here.
 Run from the workspace root:
 
     python scripts/graphical/jax_assertions.py
-"""
 
-"""
 __Env__
 
 Test-harness configuration (PyAutoHands docs/env_profile_redesign.md §10).

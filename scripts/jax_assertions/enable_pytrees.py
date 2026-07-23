@@ -16,9 +16,7 @@ that PyAutoGalaxy and PyAutoLens use to make their ``Model`` /
 - ``Collection`` round-trip preserves nested model identity
 
 Previously: ``test_autofit/jax/test_enable_pytrees.py``.
-"""
 
-"""
 __Env__
 
 Test-harness configuration (PyAutoHands docs/env_profile_redesign.md §10).

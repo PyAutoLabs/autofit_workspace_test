@@ -4,9 +4,7 @@ Feature: Database
 
 Tests that the results of a fit which sums multiple Analysis classes together can be loaded from hard-disk via a
 database built via a scrape.
-"""
 
-"""
 __Env__
 
 Test-harness configuration (PyAutoHands docs/env_profile_redesign.md §10).

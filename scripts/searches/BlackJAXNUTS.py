@@ -28,9 +28,7 @@ References:
 
  - https://github.com/blackjax-devs/blackjax
  - https://arxiv.org/abs/1111.4246  (the original NUTS paper)
-"""
 
-"""
 __Env__
 
 Test-harness configuration (PyAutoHands docs/env_profile_redesign.md §10).

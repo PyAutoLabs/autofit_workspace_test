@@ -26,9 +26,7 @@ These are jax-only assertions, so they live here rather than in ``test_autofit/`
 Run from the workspace root:
 
     python scripts/jax_assertions/fitness_nan_gradient_contract.py
-"""
 
-"""
 __Env__
 
 Test-harness configuration (PyAutoHands docs/env_profile_redesign.md §10).
