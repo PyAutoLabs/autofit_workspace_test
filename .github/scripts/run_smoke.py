@@ -7,7 +7,7 @@ appropriate environment. Continues through failures and exits non-zero
 if any script failed.
 
 The env resolution itself is NOT implemented here: it is PyAutoHands's
-`autobuild/env_config.py`, imported below. This file used to carry a copy, and
+`autohands/env_config.py`, imported below. This file used to carry a copy, and
 the copy had already drifted (its `load_env_config` hardcoded
 `config/build/env_vars.yaml`, so the PR gate was structurally unable to read
 the release profile — the seed incident's failure mode 4/7). One resolver
@@ -31,13 +31,13 @@ SMOKE_FILE = WORKSPACE / "smoke_tests.txt"
 ENV_VARS_FILE = WORKSPACE / "config" / "build" / "env_vars.yaml"
 SCRIPTS_DIR = WORKSPACE / "scripts"
 
-# CI puts PyAutoHands/autobuild on PYTHONPATH (PyAutoHeart's reusable
+# CI puts PyAutoHands/autohands on PYTHONPATH (PyAutoHeart's reusable
 # smoke-tests.yml clones it alongside the dependency chain); for local runs,
 # fall back to the sibling checkout.
 try:
     from env_config import build_env_for_script, load_env_config
 except ImportError:  # pragma: no cover - local-run fallback
-    sys.path.insert(0, str(WORKSPACE.parent / "PyAutoHands" / "autobuild"))
+    sys.path.insert(0, str(WORKSPACE.parent / "PyAutoHands" / "autohands"))
     from env_config import build_env_for_script, load_env_config
 
 
