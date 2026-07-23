@@ -27,9 +27,16 @@ Run from the workspace root:
 
     python scripts/jax_assertions/fitness_nan_gradient_contract.py
 """
-# ENV: jax
-# JAX assertion scripts test JAX behaviour; disabling JAX makes their
-# assertions vacuous.
+
+"""
+__Env__
+
+Test-harness configuration (PyAutoHands docs/env_profile_redesign.md §10).
+JAX assertion scripts test JAX behaviour; disabling JAX makes their
+assertions vacuous.
+
+ENV: jax
+"""
 
 import jax
 import jax.numpy as jnp

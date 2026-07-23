@@ -35,9 +35,16 @@ itself is separately certified (autolens_profiling/jax_compile, PyAutoConf #128)
 Two pytree-registration calls (as in ``MultiStartAdam.py``) let
 ``model.instance_from_vector`` flow through ``jax.jit``.
 """
-# ENV: jax
-# JAX assertion scripts test JAX behaviour; disabling JAX makes their
-# assertions vacuous.
+
+"""
+__Env__
+
+Test-harness configuration (PyAutoHands docs/env_profile_redesign.md §10).
+JAX assertion scripts test JAX behaviour; disabling JAX makes their
+assertions vacuous.
+
+ENV: jax
+"""
 
 import numpy as np
 from os import path
