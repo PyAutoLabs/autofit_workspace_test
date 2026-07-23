@@ -21,6 +21,9 @@ outptu (which assertions test for below):
 
 covariance
 """
+# ENV: real_search
+# Asserts len(agg) > 0; needs a real sampler run (TEST_MODE=2 bypass
+# leaves the aggregator empty).
 
 import os
 from os import path

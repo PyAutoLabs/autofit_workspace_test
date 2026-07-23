@@ -15,6 +15,9 @@ Run from the workspace root:
 
     python scripts/jax_assertions/priors_xp_dispatch.py
 """
+# ENV: jax
+# JAX assertion scripts test JAX behaviour; disabling JAX makes their
+# assertions vacuous.
 
 import numpy as np
 

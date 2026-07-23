@@ -5,6 +5,9 @@ Feature: Database
 Tests that the results of a fit which sums multiple Analysis classes together can be loaded from hard-disk via a
 database built via a scrape.
 """
+# ENV: real_search
+# Asserts len(agg) > 0; needs a real sampler run (TEST_MODE=2 bypass
+# leaves the aggregator empty).
 
 # %matplotlib inline
 # from pyprojroot import here

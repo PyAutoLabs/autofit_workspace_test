@@ -12,6 +12,9 @@ Run from the workspace root:
 
     python scripts/graphical/jax_assertions.py
 """
+# ENV: jax
+# JAX assertion scripts test JAX behaviour; disabling JAX makes their
+# assertions vacuous.
 
 import pickle
 

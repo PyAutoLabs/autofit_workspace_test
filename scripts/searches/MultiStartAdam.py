@@ -21,6 +21,9 @@ Two pytree-registration calls (as in ``Nautilus_jax.py``) let
  - ``register_model(model)`` registers each concrete ``cls`` in the model
    (here ``af.ex.Gaussian``) so its instances become traceable pytrees.
 """
+# ENV: real_search jax
+# JAX-native gradient MAP search; TEST_MODE=2 bypasses its JAX path
+# (a backend regression). Run it for real with JAX.
 
 import numpy as np
 from os import path

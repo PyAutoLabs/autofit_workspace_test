@@ -29,6 +29,9 @@ References:
  - https://github.com/blackjax-devs/blackjax
  - https://arxiv.org/abs/1111.4246  (the original NUTS paper)
 """
+# ENV: real_search jax
+# Gradient MCMC that needs JAX; TEST_MODE=2 bypass returns the prior
+# midpoint and fails truth-recovery asserts. Run the real sampler.
 
 import numpy as np
 from os import path
