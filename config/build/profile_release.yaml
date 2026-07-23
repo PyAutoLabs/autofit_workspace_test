@@ -1,7 +1,7 @@
 # Per-script environment variable configuration for the RELEASE-FIDELITY
 # validation run (Heart's workspace-validation.yml, mode=release — the M3
-# wheel-based release-fidelity path). Distinct from env_vars.yaml, which is the
-# `smoke` profile used by the per-PR CI gate.
+# wheel-based release-fidelity path). Distinct from profile_smoke.yaml, which is
+# the `smoke` profile used by the per-PR CI gate.
 #
 # The `release` profile runs REAL searches (PYAUTO_TEST_MODE="0" — no
 # reduced-iteration bypass) at full resolution. Spec + acceptance table:
@@ -21,7 +21,7 @@
 # `defaults` exists to close. In practice that leaves PYAUTO_DISABLE_JAX as
 # the only var any override here still needs to touch — PYAUTO_TEST_MODE="0"
 # already satisfies every "needs a real sampler run" case the smoke profile's
-# env_vars.yaml handles with a per-script unset.
+# profile_smoke.yaml handles with a per-script unset.
 #
 # Pattern convention (same as no_run.yaml):
 #   - Patterns containing '/' do a substring match against the file path

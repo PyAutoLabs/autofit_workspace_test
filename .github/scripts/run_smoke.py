@@ -1,7 +1,7 @@
 """
 Run the workspace smoke test suite.
 
-Reads `smoke_tests.txt` from the workspace root and `config/build/env_vars.yaml`
+Reads `smoke_tests.txt` from the workspace root and `config/build/profile_smoke.yaml`
 for per-script env var overrides, then runs each listed script with the
 appropriate environment. Continues through failures and exits non-zero
 if any script failed.
@@ -9,7 +9,7 @@ if any script failed.
 The env resolution itself is NOT implemented here: it is PyAutoHands's
 `autohands/env_config.py`, imported below. This file used to carry a copy, and
 the copy had already drifted (its `load_env_config` hardcoded
-`config/build/env_vars.yaml`, so the PR gate was structurally unable to read
+`config/build/profile_smoke.yaml`, so the PR gate was structurally unable to read
 the release profile — the seed incident's failure mode 4/7). One resolver
 means the PR gate and the release runner cannot disagree about what a script's
 environment is. See PyAutoHands docs/env_profile_redesign.md §5 (#161 step 2).
@@ -28,7 +28,12 @@ from pathlib import Path
 
 WORKSPACE = Path(__file__).resolve().parents[2]
 SMOKE_FILE = WORKSPACE / "smoke_tests.txt"
-ENV_VARS_FILE = WORKSPACE / "config" / "build" / "env_vars.yaml"
+# Prefer the canonical profile name; fall back to the legacy name for any
+# checkout the rename (#161 step 6) hasn't reached yet. The fallback dies at
+# the stage-3 cleanup.
+ENV_VARS_FILE = WORKSPACE / "config" / "build" / "profile_smoke.yaml"
+if not ENV_VARS_FILE.exists():
+    ENV_VARS_FILE = WORKSPACE / "config" / "build" / "env_vars.yaml"
 SCRIPTS_DIR = WORKSPACE / "scripts"
 
 # CI puts PyAutoHands/autohands on PYTHONPATH (PyAutoHeart's reusable

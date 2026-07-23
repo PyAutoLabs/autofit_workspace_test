@@ -41,7 +41,7 @@ python .github/scripts/run_smoke.py
 ```
 
 It executes the curated entries in `smoke_tests.txt`, applying per-entry environment from
-`config/build/env_vars.yaml`. That file sets `PYAUTO_TEST_MODE=2` (skip the sampler) as the default,
+`config/build/profile_smoke.yaml`. That file sets `PYAUTO_TEST_MODE=2` (skip the sampler) as the default,
 but **search and feature tests that must validate real inference `unset` it** (or set
 `PYAUTO_TEST_MODE=1`, reduced iterations with a real sampler) — those are the cases where bypassing
 the sampler would defeat the test. So the test-mode story is per-script, not a blanket "runs for
