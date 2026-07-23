@@ -19,6 +19,9 @@ key path so the two utility families can be compared directly.
 
 Previously: ``test_autofit/graphical/functionality/test_nested.py``.
 """
+# ENV: jax
+# JAX assertion scripts test JAX behaviour; disabling JAX makes their
+# assertions vacuous.
 
 import collections
 

@@ -15,6 +15,9 @@ public API path).
 
 Previously: ``test_autofit/jax/test_pytrees.py``.
 """
+# ENV: jax
+# JAX assertion scripts test JAX behaviour; disabling JAX makes their
+# assertions vacuous.
 
 import jax
 import jax.numpy as jnp

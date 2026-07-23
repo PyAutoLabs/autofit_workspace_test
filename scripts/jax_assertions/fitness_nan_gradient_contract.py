@@ -27,6 +27,9 @@ Run from the workspace root:
 
     python scripts/jax_assertions/fitness_nan_gradient_contract.py
 """
+# ENV: jax
+# JAX assertion scripts test JAX behaviour; disabling JAX makes their
+# assertions vacuous.
 
 import jax
 import jax.numpy as jnp

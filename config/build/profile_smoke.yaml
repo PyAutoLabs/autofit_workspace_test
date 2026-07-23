@@ -17,19 +17,8 @@ defaults:
   MPLCONFIGDIR: "/tmp/matplotlib"           # Writable config dir for matplotlib
 
 overrides:
-  # Aggregator / database / minimal-output scripts assert `len(agg) > 0`.
-  # They need a real sampler run; PYAUTO_TEST_MODE=2 would bypass the
-  # sampler and leave the aggregator empty, failing the assertion.
-  - pattern: "database/directory/general"
-    unset: [PYAUTO_TEST_MODE]
-  - pattern: "database/directory/multi_analysis"
-    unset: [PYAUTO_TEST_MODE]
-  - pattern: "database/scrape/general"
-    unset: [PYAUTO_TEST_MODE]
-  - pattern: "database/scrape/multi_analysis"
-    unset: [PYAUTO_TEST_MODE]
-  - pattern: "features/minimal_output"
-    unset: [PYAUTO_TEST_MODE]
+  # Migrated to in-file `# ENV: real_search` declarations on each matched
+  # script (database/*, features/minimal_output) — #187 Stage 2.
   # Model assertion scripts define inequality constraints between parameters
   # (e.g. gaussian_0.centre > gaussian_1.centre). Bypass mode (TEST_MODE=2)
   # uses a midpoint unit vector so both parameters get identical values,
@@ -41,29 +30,5 @@ overrides:
   - pattern: "features/assertion"
     set:
       PYAUTO_TEST_MODE: "1"
-  # JAX assertion scripts exist specifically to test JAX behavior — disabling
-  # JAX makes their assertions vacuous (Analysis._use_jax_for_visualization is
-  # silently flipped to False, so cached attrs like _jitted_fit_from never get
-  # set, and downstream assertions about those attrs hit __getattr__).
-  - pattern: "jax_assertions/"
-    unset: [PYAUTO_DISABLE_JAX]
-  # BlackJAXNUTS is a gradient-based MCMC that requires JAX (jax.grad of the
-  # autofit Fitness). Under PYAUTO_TEST_MODE=2 the sampler is bypassed and
-  # returns the prior midpoint — the script's truth-recovery assertions
-  # (centre ≈ 50, normalization ≈ 25, sigma ≈ 10) then fail because the
-  # LogUniformPrior's log-midpoint is 1.0, not 25.0. Run with full sampler
-  # at the script's already-cheap defaults (num_warmup=200, num_samples=500).
-  - pattern: "searches/BlackJAXNUTS"
-    unset: [PYAUTO_TEST_MODE, PYAUTO_DISABLE_JAX]
-  # MultiStartAdam is a JAX-native gradient MAP search that hard-raises when the
-  # analysis is not on the JAX backend. Under this profile's defaults it never
-  # reaches that guard: PYAUTO_TEST_MODE=2 bypasses the sampler before `_fit`
-  # runs, so the script passes without executing its JAX path at all — the
-  # backend regression it exists to catch went unnoticed here and surfaced only
-  # under mode=release. Run it for real (a jitted 3-parameter fit, ~6s) so the
-  # weekly mode=smoke workspace-validation sweep, which runs every script under
-  # this profile, actually exercises it. Note this profile does NOT feed the
-  # per-PR gate — that is the curated smoke_tests.txt list, which contains
-  # neither this script nor BlackJAXNUTS.
-  - pattern: "searches/MultiStartAdam"
-    unset: [PYAUTO_TEST_MODE, PYAUTO_DISABLE_JAX]
+  # jax_assertions/, searches/BlackJAXNUTS and searches/MultiStartAdam migrated
+  # to in-file `# ENV:` declarations (jax / real_search jax) — #187 Stage 2.

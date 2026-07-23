@@ -16,6 +16,9 @@ Run from the workspace root:
 
     python scripts/jax_assertions/shared_state.py
 """
+# ENV: jax
+# JAX assertion scripts test JAX behaviour; disabling JAX makes their
+# assertions vacuous.
 
 import numpy as np
 import jax
