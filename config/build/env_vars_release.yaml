@@ -28,12 +28,12 @@
 #   - Patterns without '/' match the file stem exactly
 
 defaults:
-  PYAUTO_TEST_MODE: "0"                # real searches — no reduced-iteration bypass
-  PYAUTO_DISABLE_JAX: "0"              # JAX enabled (release fidelity, not smoke) — see "Why 0" below
+  PYAUTO_TEST_MODE: "0"                     # real searches — no reduced-iteration bypass
+  PYAUTO_DISABLE_JAX: "0"                   # JAX enabled (release fidelity, not smoke) — see "Why 0" below
   PYAUTO_SKIP_WORKSPACE_VERSION_CHECK: "1"  # TestPyPI dev version won't match the workspace pin
-  JAX_ENABLE_X64: "True"               # enable 64-bit precision in JAX
-  NUMBA_CACHE_DIR: "/tmp/numba_cache"   # writable cache dir for numba
-  MPLCONFIGDIR: "/tmp/matplotlib"       # writable config dir for matplotlib
+  JAX_ENABLE_X64: "True"                    # enable 64-bit precision in JAX
+  NUMBA_CACHE_DIR: "/tmp/numba_cache"       # writable cache dir for numba
+  MPLCONFIGDIR: "/tmp/matplotlib"           # writable config dir for matplotlib
 
 # Why PYAUTO_DISABLE_JAX is "0" here, and why there is no per-script JAX
 # override list any more (2026-07-15)
