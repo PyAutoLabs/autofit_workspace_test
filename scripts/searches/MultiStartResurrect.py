@@ -2,9 +2,11 @@
 Searches: MultiStart restart-on-death / resurrection (JAX)
 =========================================================
 
-Validation of the ``resurrect`` knob on the multi-start gradient MAP searches
-(``af.AbstractMultiStartGradient``, Phase 2 of the multi-start gradient v2
-promotion, autolens_workspace_developer#101).
+Validation of the ``resurrect`` knob on the multi-start gradient MAP searches —
+``AbstractMultiStartGradient``, the shared base class behind ``af.MultiStartAdam``
+and ``af.MultiStartProdigy`` (the base is not itself exported into the ``af``
+namespace). Phase 2 of the multi-start gradient v2 promotion,
+autolens_workspace_developer#101.
 
 When ``resurrect=True``, any start whose objective goes non-finite is redrawn
 each step (fresh params from the start band + its per-start optimizer state
@@ -23,6 +25,15 @@ never move the winning basin — ``resurrect`` on and off recover the identical 
 
 Two pytree-registration calls (as in ``MultiStartAdam.py``) let
 ``model.instance_from_vector`` flow through ``jax.jit``.
+
+__Env__
+
+Test-harness configuration (PyAutoHands docs/env_profile_redesign.md §10).
+JAX gradient MAP search; TEST_MODE=2 bypasses the search entirely, so no
+``search_internal`` is built and the ``n_resurrections`` key this script reports
+on is absent from ``samples_info``. Run it for real with JAX.
+
+ENV: real_search jax
 """
 
 import numpy as np
