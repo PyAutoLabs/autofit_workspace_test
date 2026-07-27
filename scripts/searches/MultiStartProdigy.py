@@ -32,6 +32,16 @@ Two pytree-registration calls (as in ``MultiStartAdam.py``) let
    and the prior classes once per process.
  - ``register_model(model)`` registers each concrete ``cls`` in the model
    (here ``af.ex.Gaussian``) so its instances become traceable pytrees.
+
+__Env__
+
+Test-harness configuration (PyAutoHands docs/env_profile_redesign.md §10).
+Learning-rate-free JAX gradient MAP search; TEST_MODE=2 bypasses the search
+entirely and returns prior midpoints, so the truth-basin assertions below fail
+on ``normalization`` (the ``LogUniform(1e-2, 1e2)`` midpoint is 1.0, not 25.0).
+Run it for real with JAX.
+
+ENV: real_search jax
 """
 
 import numpy as np
