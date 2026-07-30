@@ -240,5 +240,4 @@ it passes the information learned about the model to neighboring nodes. Thus, gr
 components (and thousands of parameters) can be fitted as many bite-sized model fits, where the model fitted at each
 node consists of just tens of parameters. This makes graphical models scalable to largest datasets and most complex models!
 
-Finish.
 """
