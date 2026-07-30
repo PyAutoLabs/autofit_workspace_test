@@ -292,7 +292,3 @@ print()
 self.updated_ep_mean_field.mean_field[v: Variable] gives the Message/approximation of the posterior for an individual variable of the model
 """
 # factor_graph_result.updated_ep_mean_field.mean_field["help"]
-
-"""
-Finish.
-"""

@@ -36,7 +36,3 @@ for i in range(2):
     util.simulate_dataset_1d_via_gaussian_from(
         gaussian=gaussian, dataset_path=dataset_path
     )
-
-"""
-Finish.
-"""

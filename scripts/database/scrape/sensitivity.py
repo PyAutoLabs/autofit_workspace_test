@@ -607,7 +607,3 @@ From the Sensitivity, get an aggregator for the base or perturbed model of any o
 """
 # cell_aggregator = agg_grid.cell_number(1)
 # print("Size of Agg cell = ", len(cell_aggregator), "\n")
-
-"""
-Finish.
-"""
