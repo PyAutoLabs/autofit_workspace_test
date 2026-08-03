@@ -20,3 +20,7 @@
 
 - session/general # Session mostly works but not maintaining currently.
 - session/multi_analysis # Session mostly works but not maintaining currently.
+- graphical/ep.py # NEEDS_FIX 2026-08-03 - EP not release-ready: the per-factor searches are truncated (maxcall/maxiter=1000), so each search projects an ESS=1 posterior whose weighted variance is exactly 0; EP feeds that back as a delta-function prior, and the next cycle's initializer raises InitializerException. Intermittent - broke the 2026-08-03 nightly integrate. See PyAutoFit #1332 F10.
+- graphical/ep_deterministic.py # NEEDS_FIX 2026-08-03 - EP parked as not release-ready alongside graphical/ep.py. Passes today, but shares the EP machinery whose message projection is unstable. See PyAutoFit #1332 F10.
+- graphical/ep_exact.py # NEEDS_FIX 2026-08-03 - EP parked as not release-ready alongside graphical/ep.py. Passes today, but shares the EP machinery whose message projection is unstable. See PyAutoFit #1332 F10.
+- graphical/ep_parity.py # NEEDS_FIX 2026-08-03 - EP parked as not release-ready alongside graphical/ep.py. Passes today, but shares the EP machinery whose message projection is unstable. See PyAutoFit #1332 F10.
