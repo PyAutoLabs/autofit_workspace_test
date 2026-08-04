@@ -3,7 +3,7 @@ JAX assertions: multi-start gradient auto-convergence (early stopping)
 =====================================================================
 
 Validation of the auto-convergence (early-stopping) mode on the multi-start
-gradient MAP searches (``af.AbstractMultiStartGradient`` — ``MultiStartAdam`` /
+gradient MAP searches (``AbstractMultiStartGradient`` — ``MultiStartAdam`` /
 ``MultiStartADABelief`` / ``MultiStartLion`` / ``MultiStartProdigy``), phase 1 of
 the auto-convergence work (PyAutoFit #1406/#1407).
 
@@ -41,7 +41,14 @@ Test-harness configuration (PyAutoHands docs/env_profile_redesign.md §10).
 JAX assertion scripts test JAX behaviour; disabling JAX makes their
 assertions vacuous.
 
-ENV: jax
+This one also needs the real search (as ``searches/MultiStartAdam.py`` does).
+Under ``PYAUTO_TEST_MODE=2`` the sampler is bypassed before ``_fit`` runs, so
+``samples_info`` is built from the bypass stub and never carries ``total_steps``
+— the part-A read raises ``KeyError``. The bypass could not satisfy the
+assertions anyway: it returns the prior median, which for this
+``LogUniformPrior(1e-2, 1e2)`` is a normalization of 1.0, not 25.0.
+
+ENV: real_search jax
 """
 
 import numpy as np
