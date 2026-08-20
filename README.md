@@ -36,3 +36,5 @@ The `config/` directory contains two files used by the automated build and test 
 - `config/build/profile_smoke.yaml` — environment variables applied to each script during automated runs.
   Defines default values (e.g. test mode, small datasets) and per-script overrides for scripts
   that need different settings.
+
+<sub><i><a href="https://open.spotify.com/track/4pok08MvDsJzOM6kMpWHmc">we gon' make it through</a></i></sub>
