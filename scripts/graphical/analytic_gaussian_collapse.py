@@ -65,6 +65,15 @@ COLLAPSE CONFIG: FAIL (3/5 seeds). No seed reached the fully PATHOLOGICAL state 
 max_steps 20 (the run stops after 1-7 sweeps); `analytic_gaussian.py`'s leg B (kl_tol 1e-4, 30 steps)
 on the same seed-0 data does collapse to a biased-tight 3.7 +/- 0.75, and depending on process
 history to sigma ~ 1e-4 with the library's scale-collapse warning.
+
+__Status__
+
+Parked NEEDS_FIX 2026-09-02 in `config/build/no_run.yaml`: the autofit-EP column fails against the
+closed form because of the PyAutoFit defects tracked under PyAutoFit#1405 / autofit_workspace_test#91
+(D2/D3/D4: silent STALE / BIASED-TIGHT scatter). The script is intentionally left exit-1-on-fail as
+the regression check that turns green with the fix; the closed form is exact, and the minimal EP and
+graphical columns of its sibling `analytic_gaussian.py` pass.
+
 """
 
 import sys

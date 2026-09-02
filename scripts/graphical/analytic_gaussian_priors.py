@@ -60,6 +60,15 @@ The minimal EP passes every cell of every family. Autofit EP (PARITY: FAIL, 39/4
 #1498 verdict: LIBRARY FINDING, not the #1498 fingerprint -- minimal EP matches the closed form
 (1.816 +/- 0.372 vs 1.834 +/- 0.361) while autofit EP matches neither the closed form (a 1.30) nor the
 no-Jacobian reference (a 0.89): the log-space message is simply never projected.
+
+__Status__
+
+Parked NEEDS_FIX 2026-09-02 in `config/build/no_run.yaml`: the autofit-EP column fails against the
+closed form because of the PyAutoFit defects tracked under PyAutoFit#1405 / autofit_workspace_test#91
+(D2 Laplace covariance, D4 truncation limits and D5 log-space transform lost in projection). The
+script is intentionally left exit-1-on-fail as the regression check that turns green with the fix;
+the closed form, minimal EP and graphical columns pass.
+
 """
 
 import sys

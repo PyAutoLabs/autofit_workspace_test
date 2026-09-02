@@ -74,6 +74,14 @@ history the same graph also collapses fully to sigma ~ 1e-4 with the library's s
 warning firing. The minimal EP with a Laplace projection reproduces the collapse deterministically
 (`analytic_ep_minimal.py`): the tilted density of every hierarchical site is unbounded as sigma -> 0.
 
+__Status__
+
+Parked NEEDS_FIX 2026-09-02 in `config/build/no_run.yaml`: the autofit-EP column fails against the
+closed form because of the PyAutoFit defects tracked under PyAutoFit#1405 / autofit_workspace_test#91
+(D1 id-0 prior / FactorValue collision, D2/D3 Laplace projection). The script is intentionally left
+exit-1-on-fail as the regression check that turns green with the fix; the closed form, minimal EP and
+graphical columns pass.
+
 __Env__ (Developer Only)
 
 The graphical joint-fit column runs a real DynestyStatic search; test-mode 2 would replace it with a
