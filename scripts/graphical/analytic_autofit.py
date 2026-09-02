@@ -166,7 +166,8 @@ def read_ep_posteriors(result, priors):
             base = message.base_message
             out[name] = (float(base.mean), float(base.sigma), "log-space base message (moments of log sigma)")
         elif isinstance(message, TruncatedNormalMessage):
-            loc, scale, lower, upper = (float(p) for p in message.parameters)
+            loc, scale = (float(p) for p in message.parameters)
+            lower, upper = float(message.lower_limit), float(message.upper_limit)
             a, b = (lower - loc) / scale, (upper - loc) / scale
             out[name] = (
                 float(truncnorm.mean(a, b, loc=loc, scale=scale)),
