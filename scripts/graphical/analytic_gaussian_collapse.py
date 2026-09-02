@@ -53,7 +53,7 @@ silent collapse -- outside the interval, or a stale prior, with no library warni
 script ends `COLLAPSE CONFIG: PASS|FAIL (k/n seeds)` and exits 1 on failure; the per-seed table is
 the evidence banked for phase 2, whichever way it falls.
 
-__What the first run showed (seeds 0-4, 2026-09-02, PyAutoFit 2026.8.17.1; ~35 s)__
+__What the first, pre-fix run showed (seeds 0-4, 2026-09-02, PyAutoFit 2026.8.17.1 before #1558/#1560/#1562; ~35 s)__
 
     seed 0   STALE          10.00 +/- 3.69  (closed form 6.57, [q05, q95] = [2.98, 12.15]); 10/10 BAD_PROJECTION
     seed 1   RECOVER         7.94 +/- 1.34  (closed form 10.46, [6.26, 15.99])
@@ -66,13 +66,21 @@ max_steps 20 (the run stops after 1-7 sweeps); `analytic_gaussian.py`'s leg B (k
 on the same seed-0 data does collapse to a biased-tight 3.7 +/- 0.75, and depending on process
 history to sigma ~ 1e-4 with the library's scale-collapse warning.
 
+__What the same run shows on PyAutoFit main 5375f4d63 (#1558/#1560/#1562 merged; 2026-09-02, ~17 s)__
+
+    seed 0   RECOVER         9.24 +/- 3.61  (closed form 6.57, [q05, q95] = [2.98, 12.15])
+    seed 1   RECOVER        10.73 +/- 3.21  (closed form 10.46, [6.26, 15.99])
+    seed 2   RECOVER        13.35 +/- 2.92  (closed form 13.57, [9.22, 18.94])
+    seed 3   RECOVER        13.88 +/- 2.88  (closed form 14.35, [10.00, 19.65])
+    seed 4   RECOVER        12.21 +/- 3.03  (closed form 12.48, [8.17, 17.89])
+
+COLLAPSE CONFIG: PASS (5/5 seeds): every seed's E_EP[sigma] is a posterior (HierarchicalFactor
+SUCCESS on every seed) inside the closed-form [q05, q95]; no library warning is needed or emitted.
+
 __Status__
 
-Parked NEEDS_FIX 2026-09-02 in `config/build/no_run.yaml`: the autofit-EP column fails against the
-closed form because of the PyAutoFit defects tracked under PyAutoFit#1405 / autofit_workspace_test#91
-(D2/D3/D4: silent STALE / BIASED-TIGHT scatter). The script is intentionally left exit-1-on-fail as
-the regression check that turns green with the fix; the closed form is exact, and the minimal EP and
-graphical columns of its sibling `analytic_gaussian.py` pass.
+Curated into the smoke gate since 2026-09-02: with PyAutoFit#1558/#1560/#1562 every seed reads
+RECOVER; a SILENT, STALE or PATHOLOGICAL verdict is a regression.
 
 """
 
