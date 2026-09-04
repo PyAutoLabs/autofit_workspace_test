@@ -120,21 +120,30 @@ def classify(scatter, err, ref_mean, updated):
     """The phase-2 labels (module docstring), with the closed-form E[sigma] as the target."""
     if not updated:
         return "STALE"
-    if scatter < GUARD_MEAN_FRACTION * INITIAL_SCATTER and (err / scatter if scatter > 0.0 else 0.0) < GUARD_RELATIVE_ERROR:
+    if (
+        scatter < GUARD_MEAN_FRACTION * INITIAL_SCATTER
+        and (err / scatter if scatter > 0.0 else 0.0) < GUARD_RELATIVE_ERROR
+    ):
         return "PATHOLOGICAL"
     pull = abs(ref_mean - scatter) / err if err > 0.0 else np.inf
     return "BIASED-TIGHT" if pull > 3.0 else "RECOVER"
 
 
 def truncated(mean, sigma):
-    return af.TruncatedGaussianPrior(mean=mean, sigma=sigma, lower_limit=0.0, upper_limit=100.0)
+    return af.TruncatedGaussianPrior(
+        mean=mean, sigma=sigma, lower_limit=0.0, upper_limit=100.0
+    )
 
 
 """
 __Seeds__
 """
-print("Analytic Gaussian benchmark -- phase-2 collapse configuration (truncated priors, kl_tol 0.05, max_steps 20, Laplace)")
-print(f"  {'seed':<5}{'ref E[sigma]':>13}{'q05':>8}{'q50':>8}{'q95':>8} | {'EP sigma':>10} +/- {'std':<9} {'inside':<7}{'class':<14}{'ref mu':>10} | {'EP mu':>10} +/- {'std':<8} {'time':>6}")
+print(
+    "Analytic Gaussian benchmark -- phase-2 collapse configuration (truncated priors, kl_tol 0.05, max_steps 20, Laplace)"
+)
+print(
+    f"  {'seed':<5}{'ref E[sigma]':>13}{'q05':>8}{'q50':>8}{'q95':>8} | {'EP sigma':>10} +/- {'std':<9} {'inside':<7}{'class':<14}{'ref mu':>10} | {'EP mu':>10} +/- {'std':<8} {'time':>6}"
+)
 
 results = []
 for seed in SEEDS:
@@ -145,7 +154,9 @@ for seed in SEEDS:
     factor_graph, hf, models = build_factor_graph(
         sim,
         lambda: truncated(*DRAWN_PRIOR),
-        dict(mean=truncated(*MU_PRIOR), sigma=truncated(SIGMA_PRIOR[1], SIGMA_PRIOR[2])),
+        dict(
+            mean=truncated(*MU_PRIOR), sigma=truncated(SIGMA_PRIOR[1], SIGMA_PRIOR[2])
+        ),
     )
     priors = {"sigma": hf.sigma, "mu": hf.mean}
     name = f"analytic_gaussian_collapse_seed{seed}"
@@ -158,13 +169,31 @@ for seed in SEEDS:
     scatter, err = post["sigma"][:2]
     inside = ref["sigma_q05"] <= scatter <= ref["sigma_q95"]
     flags = ep_flag_summary(name)
-    updated = "HierarchicalFactor" in flags and "SUCCESS" in flags.split("HierarchicalFactor", 1)[1].split(";")[0]
+    updated = (
+        "HierarchicalFactor" in flags
+        and "SUCCESS" in flags.split("HierarchicalFactor", 1)[1].split(";")[0]
+    )
     label = classify(scatter, err, ref["sigma_mean"], updated)
     diagnostics = ep_diagnostics_text(name)
-    warnings_block = diagnostics.split("WARNINGS", 1)[1].strip() if "WARNINGS" in diagnostics else ""
-    documented = ("scale-collapse" in warnings_block) or ("STALE FACTORS" in warnings_block)
+    warnings_block = (
+        diagnostics.split("WARNINGS", 1)[1].strip() if "WARNINGS" in diagnostics else ""
+    )
+    documented = ("scale-collapse" in warnings_block) or (
+        "STALE FACTORS" in warnings_block
+    )
     ok = (inside and updated) or (label != "RECOVER" and documented)
-    results.append(dict(seed=seed, ok=ok, label=label, inside=inside, documented=documented, scatter=scatter, err=err, ref=ref))
+    results.append(
+        dict(
+            seed=seed,
+            ok=ok,
+            label=label,
+            inside=inside,
+            documented=documented,
+            scatter=scatter,
+            err=err,
+            ref=ref,
+        )
+    )
 
     print(
         f"  {seed:<5}{ref['sigma_mean']:>13.4f}{ref['sigma_q05']:>8.3f}{ref['sigma_q50']:>8.3f}{ref['sigma_q95']:>8.3f} | "
@@ -173,15 +202,26 @@ for seed in SEEDS:
     )
     print(f"        sigma message: {post['sigma'][2]}")
     print(f"        flags: {flags}")
-    print(f"        ep_diagnostics.results warnings: {warnings_block if warnings_block else '(none)'}")
-    print(f"        seed verdict: {'PASS' if ok else 'FAIL'} ({'posterior inside [q05, q95]' if (inside and updated) else ('documented collapse' if documented else 'SILENT ' + label)})")
+    print(
+        f"        ep_diagnostics.results warnings: {warnings_block if warnings_block else '(none)'}"
+    )
+    print(
+        f"        seed verdict: {'PASS' if ok else 'FAIL'} ({'posterior inside [q05, q95]' if (inside and updated) else ('documented collapse' if documented else 'SILENT ' + label)})"
+    )
 
 """
 __Verdict__
 """
-tally = {k: sum(r["label"] == k for r in results) for k in ("RECOVER", "BIASED-TIGHT", "PATHOLOGICAL", "STALE")}
+tally = {
+    k: sum(r["label"] == k for r in results)
+    for k in ("RECOVER", "BIASED-TIGHT", "PATHOLOGICAL", "STALE")
+}
 n_ok = sum(r["ok"] for r in results)
-print(f"\nclassification: " + ", ".join(f"{k} {v}/{len(results)}" for k, v in tally.items()) + f"; inside [q05, q95] on {sum(r['inside'] for r in results)}/{len(results)} seeds; library warning on {sum(r['documented'] for r in results)}/{len(results)}")
+print(
+    f"\nclassification: "
+    + ", ".join(f"{k} {v}/{len(results)}" for k, v in tally.items())
+    + f"; inside [q05, q95] on {sum(r['inside'] for r in results)}/{len(results)} seeds; library warning on {sum(r['documented'] for r in results)}/{len(results)}"
+)
 verdict = "PASS" if n_ok == len(results) else "FAIL"
 print(f"COLLAPSE CONFIG: {verdict} ({n_ok}/{len(results)} seeds)")
 if verdict == "FAIL":

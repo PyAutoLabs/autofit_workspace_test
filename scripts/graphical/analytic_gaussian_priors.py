@@ -100,9 +100,26 @@ EP_KWARGS = dict(kl_tol=1e-4, max_steps=30)
 
 FAMILIES = [
     # (label, reference prior tuple, autofit hyper-prior factory, theta)
-    ("gaussian", ("gaussian", 10.0, 5.0), lambda: af.GaussianPrior(mean=10.0, sigma=5.0), "sigma"),
-    ("truncated", ("truncated", 10.0, 5.0, 0.0, 100.0), lambda: af.TruncatedGaussianPrior(mean=10.0, sigma=5.0, lower_limit=0.0, upper_limit=100.0), "sigma"),
-    ("loggaussian", ("loggaussian", float(np.log(10.0)), 0.5), lambda: af.LogGaussianPrior(mean=float(np.log(10.0)), sigma=0.5), "log_sigma"),
+    (
+        "gaussian",
+        ("gaussian", 10.0, 5.0),
+        lambda: af.GaussianPrior(mean=10.0, sigma=5.0),
+        "sigma",
+    ),
+    (
+        "truncated",
+        ("truncated", 10.0, 5.0, 0.0, 100.0),
+        lambda: af.TruncatedGaussianPrior(
+            mean=10.0, sigma=5.0, lower_limit=0.0, upper_limit=100.0
+        ),
+        "sigma",
+    ),
+    (
+        "loggaussian",
+        ("loggaussian", float(np.log(10.0)), 0.5),
+        lambda: af.LogGaussianPrior(mean=float(np.log(10.0)), sigma=0.5),
+        "log_sigma",
+    ),
 ]
 
 TOLERANCES = {
@@ -121,7 +138,10 @@ def tolerance_for(column, row):
 
 def within(mean, std, ref_mean, ref_std, tol):
     """True if (mean, std) is within tol of (ref_mean, ref_std) by the a / b rule."""
-    return abs(mean - ref_mean) / ref_std <= tol["a"] and abs(std / ref_std - 1.0) <= tol["b"]
+    return (
+        abs(mean - ref_mean) / ref_std <= tol["a"]
+        and abs(std / ref_std - 1.0) <= tol["b"]
+    )
 
 
 """
@@ -131,8 +151,12 @@ sim = simulate(seed=SEED)
 ybar_eff, v_eff = effective_statistics(sim)
 x_rows = [f"x_{i}" for i in range(len(sim["y"]))]
 
-print(f"Analytic Gaussian benchmark -- hyper-prior family sweep through autofit EP (seed {SEED}, N={len(sim['y'])})")
-print(f"  ybar' = {np.round(ybar_eff, 4)}   v' = {np.round(v_eff, 5)}   (drawn prior N{DRAWN_PRIOR} folded in)")
+print(
+    f"Analytic Gaussian benchmark -- hyper-prior family sweep through autofit EP (seed {SEED}, N={len(sim['y'])})"
+)
+print(
+    f"  ybar' = {np.round(ybar_eff, 4)}   v' = {np.round(v_eff, 5)}   (drawn prior N{DRAWN_PRIOR} folded in)"
+)
 
 passed_total = cells_total = 0
 verdict_1498 = None
@@ -148,15 +172,30 @@ for label, prior, hyper_prior_factory, theta in FAMILIES:
     t_ref = time.time() - t0
 
     t0 = time.time()
-    minimal = ep_leg_b(ybar_eff, v_eff, prior, m0=MU_PRIOR[0], t0=MU_PRIOR[1], theta=theta, projection="moments")
+    minimal = ep_leg_b(
+        ybar_eff,
+        v_eff,
+        prior,
+        m0=MU_PRIOR[0],
+        t0=MU_PRIOR[1],
+        theta=theta,
+        projection="moments",
+    )
     t_min = time.time() - t0
 
     factor_graph, hf, models = build_factor_graph(
         sim,
         lambda: af.GaussianPrior(mean=DRAWN_PRIOR[0], sigma=DRAWN_PRIOR[1]),
-        dict(mean=af.GaussianPrior(mean=MU_PRIOR[0], sigma=MU_PRIOR[1]), sigma=hyper_prior_factory()),
+        dict(
+            mean=af.GaussianPrior(mean=MU_PRIOR[0], sigma=MU_PRIOR[1]),
+            sigma=hyper_prior_factory(),
+        ),
     )
-    priors = {scatter: hf.sigma, "mu": hf.mean, **{r: m.x for r, m in zip(x_rows, models)}}
+    priors = {
+        scatter: hf.sigma,
+        "mu": hf.mean,
+        **{r: m.x for r, m in zip(x_rows, models)},
+    }
     name = f"analytic_gaussian_priors_{label}"
 
     t0 = time.time()
@@ -171,21 +210,31 @@ for label, prior, hyper_prior_factory, theta in FAMILIES:
     else:
         autofit_sigma_mean = autofit_ep[scatter][0]
 
-    rows = [(scatter, ref[f"{scatter}_mean"], ref[f"{scatter}_std"]), ("mu", ref["mu_mean"], ref["mu_std"])] + [
-        (r, ref["x_mean"][i], ref["x_std"][i]) for i, r in enumerate(x_rows)
-    ]
+    rows = [
+        (scatter, ref[f"{scatter}_mean"], ref[f"{scatter}_std"]),
+        ("mu", ref["mu_mean"], ref["mu_std"]),
+    ] + [(r, ref["x_mean"][i], ref["x_std"][i]) for i, r in enumerate(x_rows)]
     columns = {
         "minimal EP": {
             scatter: (minimal[f"{scatter}_mean"], minimal[f"{scatter}_std"]),
             "mu": (minimal["mu_mean"], minimal["mu_std"]),
-            **{r: (minimal["x_mean"][i], minimal["x_std"][i]) for i, r in enumerate(x_rows)},
+            **{
+                r: (minimal["x_mean"][i], minimal["x_std"][i])
+                for i, r in enumerate(x_rows)
+            },
         },
         "autofit EP": autofit_ep,
     }
     interval = (ref["sigma_q05"], ref["sigma_q95"])
     hard_caps = [
-        (f"hard cap: minimal EP E[sigma] = {minimal['sigma_mean']:.4f} inside [q05, q95] = [{interval[0]:.4f}, {interval[1]:.4f}]", interval[0] <= minimal["sigma_mean"] <= interval[1]),
-        (f"hard cap: autofit EP E[sigma] = {autofit_sigma_mean:.4f} inside [q05, q95] = [{interval[0]:.4f}, {interval[1]:.4f}]", interval[0] <= autofit_sigma_mean <= interval[1]),
+        (
+            f"hard cap: minimal EP E[sigma] = {minimal['sigma_mean']:.4f} inside [q05, q95] = [{interval[0]:.4f}, {interval[1]:.4f}]",
+            interval[0] <= minimal["sigma_mean"] <= interval[1],
+        ),
+        (
+            f"hard cap: autofit EP E[sigma] = {autofit_sigma_mean:.4f} inside [q05, q95] = [{interval[0]:.4f}, {interval[1]:.4f}]",
+            interval[0] <= autofit_sigma_mean <= interval[1],
+        ),
     ]
     p, n = parity_table(
         rows,
@@ -198,28 +247,68 @@ for label, prior, hyper_prior_factory, theta in FAMILIES:
     )
     passed_total += p
     cells_total += n
-    print(f"  [info] autofit EP scatter message: {autofit_ep[scatter][2] or 'NormalMessage mean/std'}")
+    print(
+        f"  [info] autofit EP scatter message: {autofit_ep[scatter][2] or 'NormalMessage mean/std'}"
+    )
     print(f"  [info] autofit EP flags: {ep_flag_summary(name)}")
     diagnostics = ep_diagnostics_text(name)
-    warnings_block = diagnostics.split("WARNINGS", 1)[1].strip() if "WARNINGS" in diagnostics else "(no warnings)"
+    warnings_block = (
+        diagnostics.split("WARNINGS", 1)[1].strip()
+        if "WARNINGS" in diagnostics
+        else "(no warnings)"
+    )
     print(f"  [info] ep_diagnostics.results warnings: {warnings_block}")
-    print(f"  [info] minimal EP sweeps {minimal['sweeps']}, converged {minimal['converged']}, skipped {minimal['skipped']}")
-    print(f"  runtimes: closed form {t_ref:.1f}s, minimal EP {t_min:.1f}s, autofit EP {t_ep:.1f}s")
+    print(
+        f"  [info] minimal EP sweeps {minimal['sweeps']}, converged {minimal['converged']}, skipped {minimal['skipped']}"
+    )
+    print(
+        f"  runtimes: closed form {t_ref:.1f}s, minimal EP {t_min:.1f}s, autofit EP {t_ep:.1f}s"
+    )
 
     """
     __#1498 fingerprint__
     """
     if label == "loggaussian":
-        ref_nj = leg_b_reference(ybar_eff, v_eff, ("loggaussian_no_jacobian", prior[1], prior[2]), m0=MU_PRIOR[0], t0=MU_PRIOR[1])
+        ref_nj = leg_b_reference(
+            ybar_eff,
+            v_eff,
+            ("loggaussian_no_jacobian", prior[1], prior[2]),
+            m0=MU_PRIOR[0],
+            t0=MU_PRIOR[1],
+        )
         ep_m, ep_s = autofit_ep[scatter][:2]
         min_m, min_s = minimal["log_sigma_mean"], minimal["log_sigma_std"]
-        minimal_ok = within(min_m, min_s, ref["log_sigma_mean"], ref["log_sigma_std"], TOLERANCES["minimal EP"]["scatter"])
-        autofit_ok = within(ep_m, ep_s, ref["log_sigma_mean"], ref["log_sigma_std"], TOLERANCES["autofit EP"])
-        autofit_nj = within(ep_m, ep_s, ref_nj["log_sigma_mean"], ref_nj["log_sigma_std"], TOLERANCES["autofit EP"])
+        minimal_ok = within(
+            min_m,
+            min_s,
+            ref["log_sigma_mean"],
+            ref["log_sigma_std"],
+            TOLERANCES["minimal EP"]["scatter"],
+        )
+        autofit_ok = within(
+            ep_m,
+            ep_s,
+            ref["log_sigma_mean"],
+            ref["log_sigma_std"],
+            TOLERANCES["autofit EP"],
+        )
+        autofit_nj = within(
+            ep_m,
+            ep_s,
+            ref_nj["log_sigma_mean"],
+            ref_nj["log_sigma_std"],
+            TOLERANCES["autofit EP"],
+        )
         print("\n  #1498 fingerprint (log sigma row):")
-        print(f"    closed form (with Jacobian)   {ref['log_sigma_mean']:.4f} +/- {ref['log_sigma_std']:.4f}")
-        print(f"    closed form (no Jacobian)     {ref_nj['log_sigma_mean']:.4f} +/- {ref_nj['log_sigma_std']:.4f}")
-        print(f"    minimal EP                    {min_m:.4f} +/- {min_s:.4f}   == closed form: {minimal_ok}")
+        print(
+            f"    closed form (with Jacobian)   {ref['log_sigma_mean']:.4f} +/- {ref['log_sigma_std']:.4f}"
+        )
+        print(
+            f"    closed form (no Jacobian)     {ref_nj['log_sigma_mean']:.4f} +/- {ref_nj['log_sigma_std']:.4f}"
+        )
+        print(
+            f"    minimal EP                    {min_m:.4f} +/- {min_s:.4f}   == closed form: {minimal_ok}"
+        )
         print(
             f"    autofit EP                    {ep_m:.4f} +/- {ep_s:.4f}   == closed form: {autofit_ok} "
             f"(a={abs(ep_m - ref['log_sigma_mean']) / ref['log_sigma_std']:.3f}, b={abs(ep_s / ref['log_sigma_std'] - 1):.3f}); "
@@ -229,11 +318,15 @@ for label, prior, hyper_prior_factory, theta in FAMILIES:
         if autofit_ok:
             verdict_1498 = "#1498 NOT reproduced: autofit EP matches the closed form (with Jacobian)"
         elif autofit_nj:
-            verdict_1498 = "PyAutoFit#1498 CONFIRMED: autofit EP matches the no-Jacobian reference"
+            verdict_1498 = (
+                "PyAutoFit#1498 CONFIRMED: autofit EP matches the no-Jacobian reference"
+            )
         elif minimal_ok:
             verdict_1498 = "LIBRARY FINDING (not the #1498 fingerprint): minimal EP matches the closed form, autofit EP matches neither reference"
         else:
-            verdict_1498 = "INCONCLUSIVE: neither EP matches the closed form on the log sigma row"
+            verdict_1498 = (
+                "INCONCLUSIVE: neither EP matches the closed form on the log sigma row"
+            )
         print(f"    VERDICT: {verdict_1498}")
 
 """

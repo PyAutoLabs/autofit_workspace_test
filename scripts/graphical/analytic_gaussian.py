@@ -120,15 +120,28 @@ SIGMA_TRUE = 10.0
 SIGMA_PRIOR_B = ("truncated", 10.0, 5.0, 0.0, 100.0)
 
 EP_KWARGS = dict(kl_tol=1e-4, max_steps=30)
-DYNESTY_KWARGS = dict(nlive=100, sample="unif", bound="multi", bootstrap=0, maxcall=30000, number_of_cores=1)
+DYNESTY_KWARGS = dict(
+    nlive=100,
+    sample="unif",
+    bound="multi",
+    bootstrap=0,
+    maxcall=30000,
+    number_of_cores=1,
+)
 
 TOLERANCES = {
-    "minimal EP": {"A": dict(a=1e-6, b=1e-6), "B": dict(scatter=dict(a=0.20, b=0.30), other=dict(a=0.05, b=0.16))},
+    "minimal EP": {
+        "A": dict(a=1e-6, b=1e-6),
+        "B": dict(scatter=dict(a=0.20, b=0.30), other=dict(a=0.05, b=0.16)),
+    },
     "autofit graphical": {"A": dict(a=0.10, b=0.15), "B": dict(a=0.10, b=0.15)},
     "autofit EP": {"A": dict(a=0.01, b=0.02), "B": dict(a=0.15, b=0.25)},
 }
 HARD_CAP_STD_ERROR = 0.50
-EP_COLUMNS = ("minimal EP", "autofit EP")  # columns subject to the E[sigma] in [q05, q95] cap
+EP_COLUMNS = (
+    "minimal EP",
+    "autofit EP",
+)  # columns subject to the E[sigma] in [q05, q95] cap
 
 
 def tolerance_for(leg):
@@ -159,9 +172,13 @@ ybar_eff, v_eff = effective_statistics(sim)
 n_datasets = len(sim["y"])
 x_rows = [f"x_{i}" for i in range(n_datasets)]
 
-print(f"Analytic Gaussian benchmark -- parity (seed {SEED}, N={n_datasets}, n_i={sim['n'][0]}, s_i={np.round(sim['s'], 2)})")
+print(
+    f"Analytic Gaussian benchmark -- parity (seed {SEED}, N={n_datasets}, n_i={sim['n'][0]}, s_i={np.round(sim['s'], 2)})"
+)
 print(f"  ybar  = {np.round(sim['ybar'], 4)}   v = {np.round(sim['v'], 5)}")
-print(f"  ybar' = {np.round(ybar_eff, 4)}   v' = {np.round(v_eff, 5)}   (drawn prior N{DRAWN_PRIOR} folded in)")
+print(
+    f"  ybar' = {np.round(ybar_eff, 4)}   v' = {np.round(v_eff, 5)}   (drawn prior N{DRAWN_PRIOR} folded in)"
+)
 
 timings = {}
 passed_total = 0
@@ -178,23 +195,34 @@ t0 = time.time()
 min_a = ep_leg_a(ybar_eff, v_eff, SIGMA_TRUE, m0=MU_PRIOR[0], t0=MU_PRIOR[1])
 timings["A minimal EP"] = time.time() - t0
 
-factor_graph_a, hf_a, models_a = build_factor_graph(sim, drawn_prior, dict(mean=mu_prior(), sigma=SIGMA_TRUE))
+factor_graph_a, hf_a, models_a = build_factor_graph(
+    sim, drawn_prior, dict(mean=mu_prior(), sigma=SIGMA_TRUE)
+)
 priors_a = {"mu": hf_a.mean, **{f"x_{i}": m.x for i, m in enumerate(models_a)}}
 assert not isinstance(hf_a.sigma, af.Prior), "leg A must fix sigma (float -> Constant)"
 
 t0 = time.time()
-joint_result_a = run_joint_fit(factor_graph_a, "analytic_gaussian_joint_a", **DYNESTY_KWARGS)
+joint_result_a = run_joint_fit(
+    factor_graph_a, "analytic_gaussian_joint_a", **DYNESTY_KWARGS
+)
 joint_a = read_joint_posteriors(joint_result_a.samples, priors_a)
 timings["A autofit graphical"] = time.time() - t0
 
 t0 = time.time()
-ep_result_a = run_autofit_ep(factor_graph_a, "analytic_gaussian_leg_a", seed=SEED, **EP_KWARGS)
+ep_result_a = run_autofit_ep(
+    factor_graph_a, "analytic_gaussian_leg_a", seed=SEED, **EP_KWARGS
+)
 ep_a = read_ep_posteriors(ep_result_a, priors_a)
 timings["A autofit EP"] = time.time() - t0
 
-rows_a = [("mu", ref_a["mu_mean"], ref_a["mu_std"])] + [(r, ref_a["x_mean"][i], ref_a["x_std"][i]) for i, r in enumerate(x_rows)]
+rows_a = [("mu", ref_a["mu_mean"], ref_a["mu_std"])] + [
+    (r, ref_a["x_mean"][i], ref_a["x_std"][i]) for i, r in enumerate(x_rows)
+]
 columns_a = {
-    "minimal EP": {"mu": (min_a["mu_mean"], min_a["mu_std"]), **{r: (min_a["x_mean"][i], min_a["x_std"][i]) for i, r in enumerate(x_rows)}},
+    "minimal EP": {
+        "mu": (min_a["mu_mean"], min_a["mu_std"]),
+        **{r: (min_a["x_mean"][i], min_a["x_std"][i]) for i, r in enumerate(x_rows)},
+    },
     "autofit graphical": joint_a,
     "autofit EP": ep_a,
 }
@@ -207,10 +235,20 @@ p, n = parity_table(
 )
 passed_total += p
 cells_total += n
-print("  [info] graphical median_pdf +/- mean|errors_at_sigma(1)|: " + ", ".join(f"{r} {joint_a[r][2]:.4f} +/- {joint_a[r][3]:.4f}" for r in ["mu"] + x_rows))
-print(f"  [info] joint fit: {len(joint_result_a.samples)} samples from {joint_result_a.samples.total_samples} calls; minimal EP sweeps {min_a['sweeps']}, converged {min_a['converged']}")
+print(
+    "  [info] graphical median_pdf +/- mean|errors_at_sigma(1)|: "
+    + ", ".join(
+        f"{r} {joint_a[r][2]:.4f} +/- {joint_a[r][3]:.4f}" for r in ["mu"] + x_rows
+    )
+)
+print(
+    f"  [info] joint fit: {len(joint_result_a.samples)} samples from {joint_result_a.samples.total_samples} calls; minimal EP sweeps {min_a['sweeps']}, converged {min_a['converged']}"
+)
 print(f"  [info] autofit EP flags: {ep_flag_summary('analytic_gaussian_leg_a')}")
-print("  runtimes: " + ", ".join(f"{k[2:]} {v:.1f}s" for k, v in timings.items() if k.startswith("A ")))
+print(
+    "  runtimes: "
+    + ", ".join(f"{k[2:]} {v:.1f}s" for k, v in timings.items() if k.startswith("A "))
+)
 
 """
 __Leg B: sigma unknown, TruncatedGaussianPrior(10, 5, 0, 100)__
@@ -220,7 +258,15 @@ ref_b = leg_b_reference(ybar_eff, v_eff, SIGMA_PRIOR_B, m0=MU_PRIOR[0], t0=MU_PR
 timings["B closed form"] = time.time() - t0
 
 t0 = time.time()
-min_b = ep_leg_b(ybar_eff, v_eff, SIGMA_PRIOR_B, m0=MU_PRIOR[0], t0=MU_PRIOR[1], theta="sigma", projection="moments")
+min_b = ep_leg_b(
+    ybar_eff,
+    v_eff,
+    SIGMA_PRIOR_B,
+    m0=MU_PRIOR[0],
+    t0=MU_PRIOR[1],
+    theta="sigma",
+    projection="moments",
+)
 timings["B minimal EP"] = time.time() - t0
 
 factor_graph_b, hf_b, models_b = build_factor_graph(
@@ -228,24 +274,38 @@ factor_graph_b, hf_b, models_b = build_factor_graph(
     drawn_prior,
     dict(
         mean=mu_prior(),
-        sigma=af.TruncatedGaussianPrior(mean=SIGMA_PRIOR_B[1], sigma=SIGMA_PRIOR_B[2], lower_limit=SIGMA_PRIOR_B[3], upper_limit=SIGMA_PRIOR_B[4]),
+        sigma=af.TruncatedGaussianPrior(
+            mean=SIGMA_PRIOR_B[1],
+            sigma=SIGMA_PRIOR_B[2],
+            lower_limit=SIGMA_PRIOR_B[3],
+            upper_limit=SIGMA_PRIOR_B[4],
+        ),
     ),
 )
-priors_b = {"sigma": hf_b.sigma, "mu": hf_b.mean, **{f"x_{i}": m.x for i, m in enumerate(models_b)}}
+priors_b = {
+    "sigma": hf_b.sigma,
+    "mu": hf_b.mean,
+    **{f"x_{i}": m.x for i, m in enumerate(models_b)},
+}
 
 t0 = time.time()
-joint_result_b = run_joint_fit(factor_graph_b, "analytic_gaussian_joint_b", **DYNESTY_KWARGS)
+joint_result_b = run_joint_fit(
+    factor_graph_b, "analytic_gaussian_joint_b", **DYNESTY_KWARGS
+)
 joint_b = read_joint_posteriors(joint_result_b.samples, priors_b)
 timings["B autofit graphical"] = time.time() - t0
 
 t0 = time.time()
-ep_result_b = run_autofit_ep(factor_graph_b, "analytic_gaussian_leg_b", seed=SEED, **EP_KWARGS)
+ep_result_b = run_autofit_ep(
+    factor_graph_b, "analytic_gaussian_leg_b", seed=SEED, **EP_KWARGS
+)
 ep_b = read_ep_posteriors(ep_result_b, priors_b)
 timings["B autofit EP"] = time.time() - t0
 
-rows_b = [("sigma", ref_b["sigma_mean"], ref_b["sigma_std"]), ("mu", ref_b["mu_mean"], ref_b["mu_std"])] + [
-    (r, ref_b["x_mean"][i], ref_b["x_std"][i]) for i, r in enumerate(x_rows)
-]
+rows_b = [
+    ("sigma", ref_b["sigma_mean"], ref_b["sigma_std"]),
+    ("mu", ref_b["mu_mean"], ref_b["mu_std"]),
+] + [(r, ref_b["x_mean"][i], ref_b["x_std"][i]) for i, r in enumerate(x_rows)]
 columns_b = {
     "minimal EP": {
         "sigma": (min_b["sigma_mean"], min_b["sigma_std"]),
@@ -274,11 +334,22 @@ p, n = parity_table(
 )
 passed_total += p
 cells_total += n
-print("  [info] graphical median_pdf +/- mean|errors_at_sigma(1)|: " + ", ".join(f"{r} {joint_b[r][2]:.4f} +/- {joint_b[r][3]:.4f}" for r in ["sigma", "mu"] + x_rows))
-print(f"  [info] joint fit: {len(joint_result_b.samples)} samples from {joint_result_b.samples.total_samples} calls; minimal EP sweeps {min_b['sweeps']}, converged {min_b['converged']}, skipped {min_b['skipped']}")
+print(
+    "  [info] graphical median_pdf +/- mean|errors_at_sigma(1)|: "
+    + ", ".join(
+        f"{r} {joint_b[r][2]:.4f} +/- {joint_b[r][3]:.4f}"
+        for r in ["sigma", "mu"] + x_rows
+    )
+)
+print(
+    f"  [info] joint fit: {len(joint_result_b.samples)} samples from {joint_result_b.samples.total_samples} calls; minimal EP sweeps {min_b['sweeps']}, converged {min_b['converged']}, skipped {min_b['skipped']}"
+)
 print(f"  [info] autofit EP sigma message: {ep_b['sigma'][2]}")
 print(f"  [info] autofit EP flags: {ep_flag_summary('analytic_gaussian_leg_b')}")
-print("  runtimes: " + ", ".join(f"{k[2:]} {v:.1f}s" for k, v in timings.items() if k.startswith("B ")))
+print(
+    "  runtimes: "
+    + ", ".join(f"{k[2:]} {v:.1f}s" for k, v in timings.items() if k.startswith("B "))
+)
 
 """
 __Verdict__

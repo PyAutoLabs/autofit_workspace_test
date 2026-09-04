@@ -257,7 +257,9 @@ def theta_grid(c, cv, prior, theta, n_grid, half_width=8.0):
         # sigma = 0 has zero measure and N(x | mu, 0) is undefined: keep the first node strictly positive.
         g_lo = max(g_lo, 1e-12 * max(1.0, abs(c)))
     if not g_hi > g_lo:
-        return None  # the cavity window lies outside the support: caller skips the update
+        return (
+            None  # the cavity window lies outside the support: caller skips the update
+        )
     return np.linspace(g_lo, g_hi, n_grid)
 
 
@@ -292,8 +294,17 @@ def tilted_prior_laplace(c, cv, prior, theta, n_grid):
     k = int(np.argmin(neg_log(t)))
     boundary = k == 0 or k == t.size - 1
     if boundary:
-        return np.nan, np.nan, True  # mode on the support edge: no Laplace approximation exists
-    res = optimize.minimize_scalar(neg_log, bounds=(t[k - 1], t[k + 1]), method="bounded", options=dict(xatol=1e-12))
+        return (
+            np.nan,
+            np.nan,
+            True,
+        )  # mode on the support edge: no Laplace approximation exists
+    res = optimize.minimize_scalar(
+        neg_log,
+        bounds=(t[k - 1], t[k + 1]),
+        method="bounded",
+        options=dict(xatol=1e-12),
+    )
     mode = float(res.x)
     h = FD_STEP * np.sqrt(cv)
     curv = (neg_log(mode + h) - 2.0 * neg_log(mode) + neg_log(mode - h)) / h**2
@@ -347,7 +358,12 @@ def tilted_h_laplace(a, av, b, bv, c, cv, prior, theta, n_grid):
     def log_joint(z):
         mu, x, th = z
         s2 = sigma_of_theta(th, theta) ** 2
-        return log_normal(mu, a, av) + log_normal(x, b, bv) + log_normal(th, c, cv) + log_normal(x, mu, s2)
+        return (
+            log_normal(mu, a, av)
+            + log_normal(x, b, bv)
+            + log_normal(th, c, cv)
+            + log_normal(x, mu, s2)
+        )
 
     def neg_profile(th):
         _, mm, _, mx, _ = conditional_block(th, theta, a, av, b, bv)
@@ -358,7 +374,12 @@ def tilted_h_laplace(a, av, b, bv, c, cv, prior, theta, n_grid):
         # Joint mode on the support edge (for theta = sigma the joint tilted density is unbounded as
         # sigma -> 0 at x_i = mu, ∝ 1/sigma): no Laplace approximation exists.
         return nan3, nan3, nan3, True
-    res = optimize.minimize_scalar(neg_profile, bounds=(t[k - 1], t[k + 1]), method="bounded", options=dict(xatol=1e-12))
+    res = optimize.minimize_scalar(
+        neg_profile,
+        bounds=(t[k - 1], t[k + 1]),
+        method="bounded",
+        options=dict(xatol=1e-12),
+    )
     th_mode = float(res.x)
     _, mm, _, mx, _ = conditional_block(th_mode, theta, a, av, b, bv)
     z0 = np.array([mm, mx, th_mode], dtype=float)
@@ -373,10 +394,15 @@ def tilted_h_laplace(a, av, b, bv, c, cv, prior, theta, n_grid):
             ei[i] = steps[i]
             ej[j] = steps[j]
             if i == j:
-                hess[i, i] = (log_joint(z0 + ei) - 2.0 * f0 + log_joint(z0 - ei)) / steps[i] ** 2
+                hess[i, i] = (
+                    log_joint(z0 + ei) - 2.0 * f0 + log_joint(z0 - ei)
+                ) / steps[i] ** 2
             else:
                 hess[i, j] = hess[j, i] = (
-                    log_joint(z0 + ei + ej) - log_joint(z0 + ei - ej) - log_joint(z0 - ei + ej) + log_joint(z0 - ei - ej)
+                    log_joint(z0 + ei + ej)
+                    - log_joint(z0 + ei - ej)
+                    - log_joint(z0 - ei + ej)
+                    + log_joint(z0 - ei - ej)
                 ) / (4.0 * steps[i] * steps[j])
 
     try:
@@ -393,8 +419,16 @@ def tilted_h_laplace(a, av, b, bv, c, cv, prior, theta, n_grid):
 def prior_theta_moments(prior, theta):
     """Moments of the hyper-prior in theta space, used to initialise q(theta)."""
     lo, hi = theta_support(prior, theta)
-    c = np.log(prior[1]) if (theta == "log_sigma" and prior[0] in ("gaussian", "truncated")) else float(prior[1])
-    cv = (float(prior[2]) / prior[1]) ** 2 if (theta == "log_sigma" and prior[0] in ("gaussian", "truncated")) else float(prior[2]) ** 2
+    c = (
+        np.log(prior[1])
+        if (theta == "log_sigma" and prior[0] in ("gaussian", "truncated"))
+        else float(prior[1])
+    )
+    cv = (
+        (float(prior[2]) / prior[1]) ** 2
+        if (theta == "log_sigma" and prior[0] in ("gaussian", "truncated"))
+        else float(prior[2]) ** 2
+    )
     if theta == "sigma" and prior[0].startswith("loggaussian"):
         c, cv = float(np.exp(prior[1])), float(np.exp(prior[1]) * prior[2]) ** 2
     # Refine by quadrature of the density itself over a wide window (10 std), clipped to the support.
@@ -410,7 +444,12 @@ def theta_summary(c, cv, prior, theta, n_grid=2001):
     """E/std of sigma and log sigma implied by q(theta) = N(c, C), by quadrature over the support."""
     t = theta_grid(c, cv, prior, theta, n_grid)
     if t is None:
-        return dict(sigma_mean=np.nan, sigma_std=np.nan, log_sigma_mean=np.nan, log_sigma_std=np.nan)
+        return dict(
+            sigma_mean=np.nan,
+            sigma_std=np.nan,
+            log_sigma_mean=np.nan,
+            log_sigma_std=np.nan,
+        )
     w = np.exp(log_normal(t, c, cv)) * simpson_weights(t)
     w = w / np.sum(w)
     sig = sigma_of_theta(t, theta)
@@ -456,7 +495,9 @@ def ep_leg_b(
     modes found on the support edge).
     """
     if projection not in ("moments", "laplace"):
-        raise ValueError(f"projection must be 'moments' or 'laplace', got {projection!r}")
+        raise ValueError(
+            f"projection must be 'moments' or 'laplace', got {projection!r}"
+        )
 
     ybar = np.asarray(ybar, dtype=float)
     v = np.asarray(v, dtype=float)
@@ -499,13 +540,18 @@ def ep_leg_b(
                 continue
 
             if projection == "moments":
-                (e_mu, v_mu), (e_x, v_x), (e_t, v_t) = tilted_h_moments(a, av, b, bv, c, cv, prior, theta, n_grid)
+                (e_mu, v_mu), (e_x, v_x), (e_t, v_t) = tilted_h_moments(
+                    a, av, b, bv, c, cv, prior, theta, n_grid
+                )
             else:
                 (e_mu, v_mu), (e_x, v_x), (e_t, v_t), boundary = tilted_h_laplace(
                     a, av, b, bv, c, cv, prior, theta, n_grid
                 )
                 boundary_hits += int(boundary)
-            if not np.all(np.isfinite([e_mu, v_mu, e_x, v_x, e_t, v_t])) or min(v_mu, v_x, v_t) <= 0.0:
+            if (
+                not np.all(np.isfinite([e_mu, v_mu, e_x, v_x, e_t, v_t]))
+                or min(v_mu, v_x, v_t) <= 0.0
+            ):
                 skipped += 1
                 continue
 
@@ -592,10 +638,26 @@ def deviations(ep, ref, theta_row):
     `theta_row` is "sigma" or "log_sigma". Returns (max_a, max_b, per_row) with per_row a list of
     (name, mean_ep, std_ep, mean_ref, std_ref, a, b).
     """
-    rows = [(theta_row, ep[f"{theta_row}_mean"], ep[f"{theta_row}_std"], ref[f"{theta_row}_mean"], ref[f"{theta_row}_std"])]
+    rows = [
+        (
+            theta_row,
+            ep[f"{theta_row}_mean"],
+            ep[f"{theta_row}_std"],
+            ref[f"{theta_row}_mean"],
+            ref[f"{theta_row}_std"],
+        )
+    ]
     rows.append(("mu", ep["mu_mean"], ep["mu_std"], ref["mu_mean"], ref["mu_std"]))
     for i in range(len(ref["x_mean"])):
-        rows.append((f"x_{i}", ep["x_mean"][i], ep["x_std"][i], ref["x_mean"][i], ref["x_std"][i]))
+        rows.append(
+            (
+                f"x_{i}",
+                ep["x_mean"][i],
+                ep["x_std"][i],
+                ref["x_mean"][i],
+                ref["x_std"][i],
+            )
+        )
 
     per_row = []
     for name, m_ep, s_ep, m_ref, s_ref in rows:
@@ -606,9 +668,13 @@ def deviations(ep, ref, theta_row):
 
 
 def print_table(per_row, label_ep="minimal EP"):
-    print(f"    {'row':<10} {'closed form':>22}   {label_ep:>22}   {'|dmean|/std':>11} {'|std ratio-1|':>13}")
+    print(
+        f"    {'row':<10} {'closed form':>22}   {label_ep:>22}   {'|dmean|/std':>11} {'|std ratio-1|':>13}"
+    )
     for name, m_ep, s_ep, m_ref, s_ref, a, b in per_row:
-        print(f"    {name:<10} {m_ref:>10.4f} +/- {s_ref:<8.4f}   {m_ep:>10.4f} +/- {s_ep:<8.4f}   {a:>11.2e} {b:>13.2e}")
+        print(
+            f"    {name:<10} {m_ref:>10.4f} +/- {s_ref:<8.4f}   {m_ep:>10.4f} +/- {s_ep:<8.4f}   {a:>11.2e} {b:>13.2e}"
+        )
 
 
 """
@@ -628,7 +694,9 @@ LAPLACE_DAMPING = 0.5  # undamped Laplace-EP sits on a ~1e-7 limit cycle (FD noi
 
 def _check(label, value, tol, extra=""):
     ok = value <= tol
-    print(f"  [{'PASS' if ok else 'FAIL'}] {label}: {value:.3e} (tol {tol:.0e}) {extra}")
+    print(
+        f"  [{'PASS' if ok else 'FAIL'}] {label}: {value:.3e} (tol {tol:.0e}) {extra}"
+    )
     return ok
 
 
@@ -663,15 +731,21 @@ def _run_self_tests():
         abs(ep_a["mu_std"] / ref_a["mu_std"] - 1.0),
         np.max(np.abs(ep_a["x_std"] / ref_a["x_std"] - 1.0)),
     )
-    print(f"  sweeps {ep_a['sweeps']}, converged {ep_a['converged']}, max |delta eta| {ep_a['max_delta']:.1e}  ({time.time() - t0_:.2f}s)")
-    print(f"  mu = {ep_a['mu_mean']:.10f} +/- {ep_a['mu_std']:.10f}  (closed form {ref_a['mu_mean']:.10f} +/- {ref_a['mu_std']:.10f})")
+    print(
+        f"  sweeps {ep_a['sweeps']}, converged {ep_a['converged']}, max |delta eta| {ep_a['max_delta']:.1e}  ({time.time() - t0_:.2f}s)"
+    )
+    print(
+        f"  mu = {ep_a['mu_mean']:.10f} +/- {ep_a['mu_std']:.10f}  (closed form {ref_a['mu_mean']:.10f} +/- {ref_a['mu_std']:.10f})"
+    )
     ok &= _check("leg A max |dmean|/std", dev_mean, TOL_LEG_A)
     ok &= _check("leg A max |std/std_ref - 1|", dev_std, TOL_LEG_A)
     ok &= _check("leg A converged", 0.0 if ep_a["converged"] else 1.0, 0.0)
 
     # (ii) Leg B: moments projection vs closed form for three hyper-priors on seeds 0-4 (per-row
     # tolerances and hard caps); the Laplace gap is reported on seed 0 only.
-    print("\n(ii) Leg B: EP (moments) vs closed form on seeds 0-4; Laplace projection reported (seed 0)")
+    print(
+        "\n(ii) Leg B: EP (moments) vs closed form on seeds 0-4; Laplace projection reported (seed 0)"
+    )
     cases = [
         (("gaussian", 10.0, 5.0), "sigma"),
         (("truncated", 10.0, 5.0, 0.0, 100.0), "sigma"),
@@ -692,7 +766,10 @@ def _run_self_tests():
             in_interval = ref_s["sigma_q05"] <= ep_s["sigma_mean"] <= ref_s["sigma_q95"]
             inside &= in_interval
             all_converged &= ep_s["converged"]
-            for key, val in zip(("a_scatter", "b_scatter", "a_other", "b_other", "b_all"), (a_sc, b_sc, a_ot, b_ot, b_all)):
+            for key, val in zip(
+                ("a_scatter", "b_scatter", "a_other", "b_other", "b_all"),
+                (a_sc, b_sc, a_ot, b_ot, b_all),
+            ):
                 worst[key] = max(worst[key], val)
             print(
                 f"    seed {seed}: sweeps {ep_s['sweeps']:>3}, converged {ep_s['converged']}, skipped {ep_s['skipped']}; "
@@ -710,16 +787,46 @@ def _run_self_tests():
             f"closed form {ref_b[f'{other}_mean']:.4f} +/- {ref_b[f'{other}_std']:.4f};  "
             f"closed-form sigma q05/q50/q95 = {ref_b['sigma_q05']:.4f}/{ref_b['sigma_q50']:.4f}/{ref_b['sigma_q95']:.4f}"
         )
-        ok &= _check(f"{prior[0]} moments, seeds 0-4: scatter row max |dmean|/std_ref", worst["a_scatter"], tol_s["a"])
-        ok &= _check(f"{prior[0]} moments, seeds 0-4: scatter row max |std/std_ref - 1|", worst["b_scatter"], tol_s["b"])
-        ok &= _check(f"{prior[0]} moments, seeds 0-4: mu/x rows max |dmean|/std_ref", worst["a_other"], tol_o["a"])
-        ok &= _check(f"{prior[0]} moments, seeds 0-4: mu/x rows max |std/std_ref - 1|", worst["b_other"], tol_o["b"])
-        ok &= _check(f"{prior[0]} moments, seeds 0-4: hard cap, any row |std/std_ref - 1|", worst["b_all"], HARD_CAP_STD_ERROR)
-        ok &= _check(f"{prior[0]} moments, seeds 0-4: hard cap, E[sigma] outside [q05, q95] (count)", 0.0 if inside else 1.0, 0.0)
-        ok &= _check(f"{prior[0]} moments, seeds 0-4: converged on every seed", 0.0 if all_converged else 1.0, 0.0)
+        ok &= _check(
+            f"{prior[0]} moments, seeds 0-4: scatter row max |dmean|/std_ref",
+            worst["a_scatter"],
+            tol_s["a"],
+        )
+        ok &= _check(
+            f"{prior[0]} moments, seeds 0-4: scatter row max |std/std_ref - 1|",
+            worst["b_scatter"],
+            tol_s["b"],
+        )
+        ok &= _check(
+            f"{prior[0]} moments, seeds 0-4: mu/x rows max |dmean|/std_ref",
+            worst["a_other"],
+            tol_o["a"],
+        )
+        ok &= _check(
+            f"{prior[0]} moments, seeds 0-4: mu/x rows max |std/std_ref - 1|",
+            worst["b_other"],
+            tol_o["b"],
+        )
+        ok &= _check(
+            f"{prior[0]} moments, seeds 0-4: hard cap, any row |std/std_ref - 1|",
+            worst["b_all"],
+            HARD_CAP_STD_ERROR,
+        )
+        ok &= _check(
+            f"{prior[0]} moments, seeds 0-4: hard cap, E[sigma] outside [q05, q95] (count)",
+            0.0 if inside else 1.0,
+            0.0,
+        )
+        ok &= _check(
+            f"{prior[0]} moments, seeds 0-4: converged on every seed",
+            0.0 if all_converged else 1.0,
+            0.0,
+        )
 
         t0_ = time.time()
-        ep_l = ep_leg_b(ybar, v, prior, theta=theta, projection="laplace", damping=LAPLACE_DAMPING)
+        ep_l = ep_leg_b(
+            ybar, v, prior, theta=theta, projection="laplace", damping=LAPLACE_DAMPING
+        )
         t_l = time.time() - t0_
         a_l, b_l, rows_l = deviations(ep_l, ref_b, theta)
         a_ml, b_ml, _ = deviations(ep_l, ep_m, theta)

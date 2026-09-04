@@ -127,7 +127,11 @@ def build_factor_graph(sim, drawn_prior_factory, hf_kwargs):
     for model in models:
         hierarchical_factor.add_drawn_variable(model.x)
 
-    return af.FactorGraphModel(*factors, hierarchical_factor), hierarchical_factor, models
+    return (
+        af.FactorGraphModel(*factors, hierarchical_factor),
+        hierarchical_factor,
+        models,
+    )
 
 
 def output_dir(name):
@@ -164,7 +168,11 @@ def read_ep_posteriors(result, priors):
         message = mean_field[prior]
         if isinstance(message, TransformedMessage):
             base = message.base_message
-            out[name] = (float(base.mean), float(base.sigma), "log-space base message (moments of log sigma)")
+            out[name] = (
+                float(base.mean),
+                float(base.sigma),
+                "log-space base message (moments of log sigma)",
+            )
         elif isinstance(message, TruncatedNormalMessage):
             loc, scale = (float(p) for p in message.parameters)
             lower, upper = float(message.lower_limit), float(message.upper_limit)
@@ -206,7 +214,12 @@ def read_joint_posteriors(samples, priors):
     out = {}
     for name, prior in priors.items():
         k = next(i for i, p in enumerate(order) if p is prior)
-        out[name] = (float(w_mean[k]), float(w_std[k]), float(median[k]), float(np.mean(np.abs(errors[k]))))
+        out[name] = (
+            float(w_mean[k]),
+            float(w_std[k]),
+            float(median[k]),
+            float(np.mean(np.abs(errors[k]))),
+        )
     return out
 
 
@@ -219,11 +232,19 @@ def ep_flag_summary(name):
     with open(files[0]) as f:
         for row in csv.DictReader(f):
             factor = row["factor"]
-            kind = factor.rstrip("0123456789") if factor.startswith(("Hierarchical", "Prior")) else "dataset"
+            kind = (
+                factor.rstrip("0123456789")
+                if factor.startswith(("Hierarchical", "Prior"))
+                else "dataset"
+            )
             counts[(kind, row["flag"])] += 1
     kinds = sorted({kind for kind, _ in counts})
     return "; ".join(
-        f"{kind} " + " ".join(f"{flag}={n}" for (k, flag), n in sorted(counts.items()) if k == kind) for kind in kinds
+        f"{kind} "
+        + " ".join(
+            f"{flag}={n}" for (k, flag), n in sorted(counts.items()) if k == kind
+        )
+        for kind in kinds
     )
 
 
@@ -236,7 +257,9 @@ def ep_diagnostics_text(name):
         return f.read()
 
 
-def parity_table(rows, columns, tolerance_for, title, extra_checks=(), hard_cap_std_error=0.50):
+def parity_table(
+    rows, columns, tolerance_for, title, extra_checks=(), hard_cap_std_error=0.50
+):
     """
     Print a parity table and return (passed, total).
 
@@ -247,7 +270,10 @@ def parity_table(rows, columns, tolerance_for, title, extra_checks=(), hard_cap_
     """
     width = 44
     print(f"\n{title}")
-    print(f"  {'row':<9}{'closed form':>22} |" + " |".join(f"{col:>{width}}" for col in columns))
+    print(
+        f"  {'row':<9}{'closed form':>22} |"
+        + " |".join(f"{col:>{width}}" for col in columns)
+    )
     passed = total = 0
     for name, ref_mean, ref_std in rows:
         cells = []
@@ -259,8 +285,13 @@ def parity_table(rows, columns, tolerance_for, title, extra_checks=(), hard_cap_
             ok = a <= tol["a"] and b <= tol["b"] and b <= hard_cap_std_error
             passed += int(ok)
             total += 1
-            cells.append(f"{mean:.4f} +/- {std:.4f} {'PASS' if ok else 'FAIL'} a={a:.3f} b={b:.3f}")
-        print(f"  {name:<9}{ref_mean:>11.4f} +/- {ref_std:<7.4f} |" + " |".join(f"{cell:>{width}}" for cell in cells))
+            cells.append(
+                f"{mean:.4f} +/- {std:.4f} {'PASS' if ok else 'FAIL'} a={a:.3f} b={b:.3f}"
+            )
+        print(
+            f"  {name:<9}{ref_mean:>11.4f} +/- {ref_std:<7.4f} |"
+            + " |".join(f"{cell:>{width}}" for cell in cells)
+        )
     for label, ok in extra_checks:
         passed += int(ok)
         total += 1

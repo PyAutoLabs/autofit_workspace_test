@@ -271,7 +271,11 @@ def log_prior_sigma(sigma, prior):
         if kind in ("gaussian", "truncated"):
             mean, sd = float(prior[1]), float(prior[2])
             lp = -0.5 * ((sigma - mean) / sd) ** 2
-            inside = (sigma > lo) & (sigma <= hi) if kind == "gaussian" else (sigma >= lo) & (sigma <= hi)
+            inside = (
+                (sigma > lo) & (sigma <= hi)
+                if kind == "gaussian"
+                else (sigma >= lo) & (sigma <= hi)
+            )
         elif kind in ("loggaussian", "loggaussian_no_jacobian"):
             ml, sl = float(prior[1]), float(prior[2])
             log_sigma = np.log(sigma)
@@ -412,7 +416,9 @@ def leg_b_reference(ybar, v, prior, m0=50.0, t0=10.0, grid=None, n_grid=20001):
     sigma_var = np.sum(pw * grid**2) - sigma_mean**2
     with np.errstate(divide="ignore"):
         log_grid = np.log(grid)
-    log_grid = np.where(pdf > 0.0, log_grid, 0.0)  # points of zero weight contribute nothing
+    log_grid = np.where(
+        pdf > 0.0, log_grid, 0.0
+    )  # points of zero weight contribute nothing
     if grid[0] == 0.0 and pdf[0] > 0.0:
         # Cell average of log sigma over [0, h]: (1/h) int_0^h log s ds = log h - 1.
         log_grid[0] = np.log(grid[1] - grid[0]) - 1.0
@@ -482,7 +488,9 @@ __Self-tests__
 
 def _check(label, value, tol, extra=""):
     ok = value <= tol
-    print(f"  [{'PASS' if ok else 'FAIL'}] {label}: {value:.3e} (tol {tol:.0e}) {extra}")
+    print(
+        f"  [{'PASS' if ok else 'FAIL'}] {label}: {value:.3e} (tol {tol:.0e}) {extra}"
+    )
     return ok
 
 
@@ -505,7 +513,10 @@ def _run_self_tests():
     a = leg_a_reference(ybar, v, sigma_true)
     mg = a["marginal"]
     d_mu = max(abs(a["mu_mean"] - mg["mu_mean"]), abs(a["mu_std"] - mg["mu_std"]))
-    d_x = max(np.max(np.abs(a["x_mean"] - mg["x_mean"])), np.max(np.abs(a["x_std"] - mg["x_std"])))
+    d_x = max(
+        np.max(np.abs(a["x_mean"] - mg["x_mean"])),
+        np.max(np.abs(a["x_std"] - mg["x_std"])),
+    )
     d_cov = np.max(np.abs(a["cov"][0, 1:] - mg["cov_mu_x"]))
     print(f"  mu = {a['mu_mean']:.6f} +/- {a['mu_std']:.6f}")
     for i in range(n):
@@ -515,7 +526,9 @@ def _run_self_tests():
     ok &= _check("max |dense - marginal| (cov(mu, x_i))", d_cov, 1e-12)
 
     # (ii) Leg B: quad vs grid normaliser for every prior family.
-    print("\n(ii) Leg B: quad vs grid normaliser (trapezoid; Simpson reported for comparison)")
+    print(
+        "\n(ii) Leg B: quad vs grid normaliser (trapezoid; Simpson reported for comparison)"
+    )
     priors = [
         ("gaussian", 10.0, 5.0),
         ("truncated", 10.0, 5.0, 0.0, 100.0),
@@ -546,7 +559,9 @@ def _run_self_tests():
         )
 
     # (iii) Leg B with a near-delta gaussian prior reproduces leg A.
-    print("\n(iii) Leg B near-delta prior (gaussian, sd 1e-3 about sigma_true) vs leg A")
+    print(
+        "\n(iii) Leg B near-delta prior (gaussian, sd 1e-3 about sigma_true) vs leg A"
+    )
     b = leg_b_reference(ybar, v, ("gaussian", sigma_true, 1e-3))
     rel_mu = max(
         abs(b["mu_mean"] - a["mu_mean"]) / a["mu_std"],
@@ -556,14 +571,20 @@ def _run_self_tests():
         np.max(np.abs(b["x_mean"] - a["x_mean"]) / a["x_std"]),
         np.max(np.abs(b["x_std"] / a["x_std"] - 1.0)),
     )
-    print(f"  sigma = {b['sigma_mean']:.6f} +/- {b['sigma_std']:.2e}  (grid width {b['grid'][-1] - b['grid'][0]:.4f})")
-    print(f"  mu    = {b['mu_mean']:.8f} +/- {b['mu_std']:.8f}   (leg A {a['mu_mean']:.8f} +/- {a['mu_std']:.8f})")
+    print(
+        f"  sigma = {b['sigma_mean']:.6f} +/- {b['sigma_std']:.2e}  (grid width {b['grid'][-1] - b['grid'][0]:.4f})"
+    )
+    print(
+        f"  mu    = {b['mu_mean']:.8f} +/- {b['mu_std']:.8f}   (leg A {a['mu_mean']:.8f} +/- {a['mu_std']:.8f})"
+    )
     ok &= _check("mu: max(|dmean|/std, |std ratio - 1|)", rel_mu, 1e-6)
     ok &= _check("x_i: max(|dmean|/std, |std ratio - 1|)", rel_x, 1e-6)
 
     # (iv) Large-data sanity: with many datasets the sigma posterior must track the moment estimator
     # sqrt(var(ybar) - mean(v)) of the data (and the sample scatter of the true draws), not the prior.
-    print("\n(iv) Leg B large-data limit (N=400, n_i=200): sigma posterior tracks the data's scatter")
+    print(
+        "\n(iv) Leg B large-data limit (N=400, n_i=200): sigma posterior tracks the data's scatter"
+    )
     big = simulate(seed=1, n_datasets=400, n_points=200)
     bb = leg_b_reference(big["ybar"], big["v"], ("loggaussian", np.log(10.0), 0.5))
     moment = np.sqrt(np.var(big["ybar"], ddof=1) - np.mean(big["v"]))

@@ -181,9 +181,7 @@ def checkpoint_counters(path_prefix):
         return None
     return {
         "total_steps": int(search_internal["total_steps"]),
-        "n_value_nan_lane_steps": int(
-            search_internal.get("n_value_nan_lane_steps", 0)
-        ),
+        "n_value_nan_lane_steps": int(search_internal.get("n_value_nan_lane_steps", 0)),
         "n_grad_nan_lane_steps": int(search_internal.get("n_grad_nan_lane_steps", 0)),
     }
 
@@ -287,12 +285,14 @@ assert resumed == reference, (resumed, reference)
 # Stated directly as well, so a failure says which way it broke: the resumed
 # totals must exceed what was on disk at the kill, i.e. they were carried, not
 # recounted from zero.
-assert (
-    resumed["n_value_nan_lane_steps"] >= at_kill["n_value_nan_lane_steps"]
-), (resumed, at_kill)
-assert (
-    resumed["n_grad_nan_lane_steps"] >= at_kill["n_grad_nan_lane_steps"]
-), (resumed, at_kill)
+assert resumed["n_value_nan_lane_steps"] >= at_kill["n_value_nan_lane_steps"], (
+    resumed,
+    at_kill,
+)
+assert resumed["n_grad_nan_lane_steps"] >= at_kill["n_grad_nan_lane_steps"], (
+    resumed,
+    at_kill,
+)
 assert resumed["total_steps"] > at_kill["total_steps"], (resumed, at_kill)
 
 print(
