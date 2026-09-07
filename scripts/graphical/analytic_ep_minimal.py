@@ -96,8 +96,11 @@ family's autofit message uses).
 
 Laplace projection: with theta = sigma the joint tilted density of every hierarchical site is
 unbounded as sigma -> 0 (∝ 1/sigma at x_i = mu), so the joint mode sits on the support edge, no
-Laplace approximation exists and no site can update -- the conjugate model reproduces the scale
-collapse deterministically. With theta = log sigma the density is bounded but the mode of
+Laplace approximation exists and no site can update. Empirically (seed 0, gaussian and truncated
+hyper-priors): 500 sweeps, converged False, skipped 3000 (500 sweeps x 6 sites), max |delta eta|
+exactly 0, and sigma is returned at its starting hyper-prior site, 10.45 +/- 4.51 (closed form
+6.59 +/- 2.89) -- the stale-factor state of the `analytic_gaussian_collapse.py` taxonomy, not a
+collapse to near-zero scatter. With theta = log sigma the density is bounded but the mode of
 N(t | c, C) e^-t sits at c - C, so a broad cavity (gaussian / truncated hyper-priors have a
 near-infinite variance in log sigma) walks the mode to -inf sweep by sweep (log sigma ~ -13 after
 500 sweeps); only the loggaussian hyper-prior, whose cavity is narrow, gives a finite Laplace fixed
@@ -830,10 +833,14 @@ def _run_self_tests():
         t_l = time.time() - t0_
         a_l, b_l, rows_l = deviations(ep_l, ref_b, theta)
         a_ml, b_ml, _ = deviations(ep_l, ep_m, theta)
+        # Every sweep skips every site (the N hierarchical sites + the hyper-prior site): no site
+        # ever updated, so the returned scatter is still its starting prior message (stale factor).
+        stale = ep_l["skipped"] == ep_l["sweeps"] * (ybar.size + 1)
         print(
             f"  laplace: sweeps {ep_l['sweeps']}, converged {ep_l['converged']}, "
             f"max |delta eta| {ep_l['max_delta']:.1e}, skipped {ep_l['skipped']}, "
             f"boundary hits {ep_l['boundary_hits']}  ({t_l:.2f}s)"
+            + ("  (stale: no site updated; scatter returned at its prior)" if stale else "")
         )
         print_table(rows_l, "EP (laplace)")
         print(
