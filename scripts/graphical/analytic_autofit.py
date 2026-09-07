@@ -51,9 +51,10 @@ deviations, so the sampler column is the weighted mean and standard deviation of
 `samples.parameter_lists` under `samples.weight_list`, matched to priors by identity through
 `model.prior_tuples_ordered_by_id`. `median_pdf` and the averaged `errors_at_sigma(1.0)` are returned
 alongside for information: on a skewed sigma posterior the median sits well below the mean by
-construction. `errors_at_sigma(as_instance=True)` cannot be used on this model at all: building the
-instance calls `GaussianPrior(mean=(lower, upper), ...)` for the hierarchical `distribution_model` and
-raises inside `NormalMessage`.
+construction. Both are read with `as_instance=False` because the weighted moments already index the
+sample columns positionally through that same prior order, so a flat vector is the like-for-like read;
+`as_instance=True` is usable here (PyAutoFit#1577 returns the hierarchical `distribution_model`'s
+per-parameter bounds as a `ModelInstance`), it is simply not the shape this comparison wants.
 
 __EP diagnostics__
 
