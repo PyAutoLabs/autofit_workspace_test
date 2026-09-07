@@ -34,15 +34,23 @@ __Per-seed classification (the phase-2 labels of `classify.py`, against the clos
                    mean-fraction gate
     RECOVER        the closed-form E[sigma] lies within 3 std_EP of the EP value
     STALE          no hierarchical-factor update ever succeeded (`ep_history.csv` has no SUCCESS for the
-                   HierarchicalFactor): the reported sigma is the starting mean-field prior, not a
-                   posterior, whatever interval it happens to sit in (the #1405 stale-factor state; the
-                   library's STALE FACTORS warning only fires for optimisers that raise, not for a
-                   BAD_PROJECTION on every sweep)
+                   HierarchicalFactor), *or* the scatter variable is listed in that file's
+                   `reverted_variables` column on every HierarchicalFactor row: the reported sigma is
+                   the starting mean-field prior, not a posterior, whatever interval it happens to sit
+                   in (the #1405 stale-factor state). The second test is the per-variable one
+                   (PyAutoFit#1575): a factor can update -- its mean and per-dataset variables move --
+                   while the scatter reverts on every one of its projections, which the factor-level
+                   SUCCESS tally cannot see. `reverted_variables` names the variables each update did
+                   not move, so the scatter is stale only when *no* row ever moved it; the `sig-rev`
+                   column of the table prints that fraction. A library without the column (before
+                   PyAutoFit#1575) reads as no information, not as staleness, and `sig-rev` prints
+                   `n/a`
 
 alongside whether E_EP[sigma] lies inside the closed-form [q05, q95] (q95 is the analytic upper limit
 on the scatter). After each run the library's own `ep_diagnostics.results` is read back from
 `output/graphical/analytic_gaussian_collapse_seed<k>/<identifier>/` and its WARNINGS block printed,
-with the `ep_history.csv` status-flag tally.
+with the `ep_history.csv` status-flag tally and its per-variable `reverted_variables` tally for the
+scatter.
 
 __Acceptance (issue #91: "sigma inside [q05, q95] or documented collapse")__
 
@@ -84,6 +92,7 @@ RECOVER; a SILENT, STALE or PATHOLOGICAL verdict is a regression.
 
 """
 
+import csv
 import sys
 import time
 
@@ -98,6 +107,7 @@ from analytic_autofit import (
     effective_statistics,
     ep_diagnostics_text,
     ep_flag_summary,
+    output_dir,
     read_ep_posteriors,
     run_autofit_ep,
 )
@@ -116,9 +126,33 @@ GUARD_MEAN_FRACTION = 0.2
 GUARD_RELATIVE_ERROR = 0.5
 
 
-def classify(scatter, err, ref_mean, updated):
+def scatter_reverted_rows(name, variable_name):
+    """
+    `(rows listing the scatter as unmoved, HierarchicalFactor rows)` from the run's `ep_history.csv`
+    `reverted_variables` column (PyAutoFit#1575). Returns `(None, 0)` when the file or the column is
+    absent -- an older library carries no per-variable information, which is not the same as
+    staleness, so the caller must not read it as one.
+    """
+    files = list(output_dir(name).rglob("ep_history.csv"))
+    if not files:
+        return None, 0
+    with open(files[0]) as f:
+        reader = csv.DictReader(f)
+        if "reverted_variables" not in (reader.fieldnames or []):
+            return None, 0
+        n_reverted = n_rows = 0
+        for row in reader:
+            if not row["factor"].startswith("Hierarchical"):
+                continue
+            n_rows += 1
+            if variable_name in (row["reverted_variables"] or "").split(";"):
+                n_reverted += 1
+    return n_reverted, n_rows
+
+
+def classify(scatter, err, ref_mean, updated, scatter_stale):
     """The phase-2 labels (module docstring), with the closed-form E[sigma] as the target."""
-    if not updated:
+    if not updated or scatter_stale:
         return "STALE"
     if (
         scatter < GUARD_MEAN_FRACTION * INITIAL_SCATTER
@@ -142,7 +176,7 @@ print(
     "Analytic Gaussian benchmark -- phase-2 collapse configuration (truncated priors, kl_tol 0.05, max_steps 20, Laplace)"
 )
 print(
-    f"  {'seed':<5}{'ref E[sigma]':>13}{'q05':>8}{'q50':>8}{'q95':>8} | {'EP sigma':>10} +/- {'std':<9} {'inside':<7}{'class':<14}{'ref mu':>10} | {'EP mu':>10} +/- {'std':<8} {'time':>6}"
+    f"  {'seed':<5}{'ref E[sigma]':>13}{'q05':>8}{'q50':>8}{'q95':>8} | {'EP sigma':>10} +/- {'std':<9} {'inside':<7}{'sig-rev':<9}{'class':<14}{'ref mu':>10} | {'EP mu':>10} +/- {'std':<8} {'time':>6}"
 )
 
 results = []
@@ -173,7 +207,14 @@ for seed in SEEDS:
         "HierarchicalFactor" in flags
         and "SUCCESS" in flags.split("HierarchicalFactor", 1)[1].split(";")[0]
     )
-    label = classify(scatter, err, ref["sigma_mean"], updated)
+    n_reverted, n_hierarchical = scatter_reverted_rows(name, priors["sigma"].name)
+    # the scatter is stale only if *every* hierarchical row left it unmoved; a
+    # missing column (`None`) is no information, not staleness
+    scatter_stale = (
+        n_reverted is not None and n_hierarchical > 0 and n_reverted == n_hierarchical
+    )
+    sig_rev = "n/a" if n_reverted is None else f"{n_reverted}/{n_hierarchical}"
+    label = classify(scatter, err, ref["sigma_mean"], updated, scatter_stale)
     diagnostics = ep_diagnostics_text(name)
     warnings_block = (
         diagnostics.split("WARNINGS", 1)[1].strip() if "WARNINGS" in diagnostics else ""
@@ -197,7 +238,7 @@ for seed in SEEDS:
 
     print(
         f"  {seed:<5}{ref['sigma_mean']:>13.4f}{ref['sigma_q05']:>8.3f}{ref['sigma_q50']:>8.3f}{ref['sigma_q95']:>8.3f} | "
-        f"{scatter:>10.4f} +/- {err:<9.3g} {str(inside):<7}{label:<14}{ref['mu_mean']:>10.4f} | "
+        f"{scatter:>10.4f} +/- {err:<9.3g} {str(inside):<7}{sig_rev:<9}{label:<14}{ref['mu_mean']:>10.4f} | "
         f"{post['mu'][0]:>10.4f} +/- {post['mu'][1]:<8.3g} {elapsed:>5.1f}s"
     )
     print(f"        sigma message: {post['sigma'][2]}")
