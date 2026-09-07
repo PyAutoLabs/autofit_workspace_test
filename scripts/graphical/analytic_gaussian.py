@@ -71,7 +71,8 @@ Autofit EP, leg B (truncated hyper-prior): the scatter collapses to a biased, ov
 3.73 +/- 0.75 (closed form 6.57 +/- 2.88, still inside [q05, q95] = [2.98, 12.15]); the returned
 `TruncatedNormalMessage` has lost its limits (-inf, inf); mu's std is 69% low. Depending on process
 history the same graph also collapses fully to sigma ~ 1e-4 with the library's scale-collapse
-warning firing. The minimal EP with a Laplace projection reproduces the collapse deterministically
+warning firing. The minimal EP with a Laplace projection reproduces the stale-factor state
+deterministically -- every site update rejected, sigma returned at its prior
 (`analytic_ep_minimal.py`): the tilted density of every hierarchical site is unbounded as sigma -> 0.
 
 __Status__

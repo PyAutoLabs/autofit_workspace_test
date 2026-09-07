@@ -81,7 +81,10 @@ at sigma = 0, because log p(sigma | D) depends on sigma only through sigma^2 and
 sigma: the endpoint derivative that drives the trapezoid rule's O(h^2) error vanishes. `__main__`
 reports both trapezoid and composite Simpson against `quad`. The one edge subtlety is E[log sigma]
 on a grid that starts at sigma = 0 with non-zero density: log(0) is replaced by the cell average of
-log sigma over the first cell, (log h - 1), which is exact for the leading term.
+log sigma over the first cell, (log h - 1). That patch is exact for the first moment only; the
+second moment carries an O(h log h) error, ~1e-10 for every shipped prior (whose density vanishes
+at sigma = 0) and at most ~1.5% of the std when real posterior mass sits at sigma = 0 -- below
+every consumer tolerance. `__main__` cross-checks both log-sigma moments against `quad` to 1e-6.
 
 __Hyper-prior families__
 
@@ -481,6 +484,38 @@ def quad_normaliser(ybar, v, prior, grid, logp_max, m0=50.0, t0=10.0):
     return z, err
 
 
+def quad_log_sigma_moments(ybar, v, prior, grid, logp_max, m0=50.0, t0=10.0):
+    """
+    `scipy.integrate.quad` of E[log sigma] and std[log sigma] over the grid range (self-test
+    cross-check of the trapezoid moments, whose first cell uses the (log h - 1) patch).
+    """
+    peak = grid[np.argmax(log_post_sigma(grid, ybar, v, prior, m0, t0)[0])]
+
+    def _moment(power):
+        def integrand(s):
+            # sigma = 0 carries no measure; log(0) there would be -inf x 0.
+            if s <= 0.0:
+                return 0.0
+            lp, _, _ = log_post_sigma(s, ybar, v, prior, m0, t0)
+            return float(np.exp(lp[0] - logp_max) * np.log(s) ** power)
+
+        val, _ = integrate.quad(
+            integrand,
+            grid[0],
+            grid[-1],
+            epsabs=0.0,
+            epsrel=1e-12,
+            limit=200,
+            points=[peak],
+        )
+        return val
+
+    z, _ = quad_normaliser(ybar, v, prior, grid, logp_max, m0, t0)
+    mean = _moment(1) / z
+    second = _moment(2) / z
+    return mean, float(np.sqrt(max(second - mean**2, 0.0)))
+
+
 """
 __Self-tests__
 """
@@ -556,6 +591,21 @@ def _run_self_tests():
             rel,
             1e-8,
             f"(Simpson: {rel_simp:.2e}, quad err {err / z_quad:.1e})",
+        )
+        ls_mean_quad, ls_std_quad = quad_log_sigma_moments(
+            ybar, v, prior, b["grid"], b["logp_max"]
+        )
+        ok &= _check(
+            f"{prior[0]}: |E[log sigma]_grid - quad|",
+            abs(b["log_sigma_mean"] - ls_mean_quad),
+            1e-6,
+            f"(quad {ls_mean_quad:.8f})",
+        )
+        ok &= _check(
+            f"{prior[0]}: |std[log sigma]_grid - quad|",
+            abs(b["log_sigma_std"] - ls_std_quad),
+            1e-6,
+            f"(quad {ls_std_quad:.8f})",
         )
 
     # (iii) Leg B with a near-delta gaussian prior reproduces leg A.
