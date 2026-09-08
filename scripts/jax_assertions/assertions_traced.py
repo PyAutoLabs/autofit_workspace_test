@@ -26,6 +26,12 @@ assertions vacuous.
 ENV: jax
 """
 
+import os
+
+# `autonerves` enables JAX x64 only if this is already set when it is imported, and JAX reads it
+# at import too — the `-1e99` sentinel below overflows to `-inf` in float32.
+os.environ.setdefault("JAX_ENABLE_X64", "True")
+
 import numpy as np
 import jax
 import jax.numpy as jnp
@@ -98,6 +104,15 @@ def _numpy_figure_of_merit(model, vector):
     return _fitness(model, use_jax=False).call(vector)
 
 
+def _sentinel(fitness):
+    """
+    The resample sentinel as JAX represents it. `resample_figure_of_merit` is a Python float, but
+    what comes back from a JAX surface has been through JAX's dtype: comparing to the Python value
+    would pin the dtype rather than the rejection, and fail wherever x64 is off.
+    """
+    return float(jnp.asarray(fitness.resample_figure_of_merit))
+
+
 def assert_top_level_ordering_assertion_resamples_on_jax():
     """
     The non-vmapped JAX path. Before the traced penalty the violating vector raised
@@ -110,12 +125,15 @@ def assert_top_level_ordering_assertion_resamples_on_jax():
     assert fitness._is_jax is True
     assert fitness._apply_assertions_traced is True
 
-    assert float(fitness.call(jnp.array(VIOLATING))) == fitness.resample_figure_of_merit
+    assert float(fitness.call(jnp.array(VIOLATING))) == _sentinel(fitness)
 
     figure_of_merit = float(fitness.call(jnp.array(SATISFYING)))
-    assert figure_of_merit != fitness.resample_figure_of_merit
+    assert figure_of_merit != _sentinel(fitness)
     assert np.isclose(
-        figure_of_merit, _numpy_figure_of_merit(model, SATISFYING), atol=1.0e-8
+        figure_of_merit,
+        _numpy_figure_of_merit(model, SATISFYING),
+        rtol=0.0,
+        atol=1.0e-8,
     )
 
 
@@ -125,19 +143,29 @@ def assert_compound_prior_ordering_between_two_bases():
     two sums of squared priors rather than between two bare priors.
     """
     model = _compound_model()
-    fitness = _fitness(model, use_jax=True)
+    reference = _numpy_figure_of_merit(model, COMPOUND_SATISFYING)
 
-    assert fitness._apply_assertions_traced is True
+    # `SumPrior` / `PowerPrior` realise their operands themselves, so a tracer regression in them
+    # would only show under a trace: run the eager, jit and vmap surfaces, not just the first.
+    for kwargs in ({}, {"use_jax_jit": True}, {"use_jax_vmap": True}):
+        fitness = _fitness(model, use_jax=True, **kwargs)
 
-    assert (
-        float(fitness.call(jnp.array(COMPOUND_VIOLATING)))
-        == fitness.resample_figure_of_merit
-    )
-    assert np.isclose(
-        float(fitness.call(jnp.array(COMPOUND_SATISFYING))),
-        _numpy_figure_of_merit(model, COMPOUND_SATISFYING),
-        atol=1.0e-8,
-    )
+        assert fitness._apply_assertions_traced is True
+
+        if kwargs.get("use_jax_vmap"):
+            values = np.asarray(
+                fitness._call(jnp.array([COMPOUND_VIOLATING, COMPOUND_SATISFYING]))
+            )
+        else:
+            values = np.array(
+                [
+                    float(fitness._call(jnp.array(COMPOUND_VIOLATING))),
+                    float(fitness._call(jnp.array(COMPOUND_SATISFYING))),
+                ]
+            )
+
+        assert values[0] == _sentinel(fitness)
+        assert np.isclose(values[1], reference, rtol=0.0, atol=1.0e-8)
 
 
 def assert_jit_and_vmap_surfaces_compile_and_resample():
@@ -151,23 +179,28 @@ def assert_jit_and_vmap_surfaces_compile_and_resample():
 
     jit_fitness = _fitness(model, use_jax=True, use_jax_jit=True)
     assert jit_fitness._call is jit_fitness._jit
-    assert float(jit_fitness._call(jnp.array(VIOLATING))) == RESAMPLE
+    assert float(jit_fitness._call(jnp.array(VIOLATING))) == _sentinel(jit_fitness)
     assert np.isclose(
-        float(jit_fitness._call(jnp.array(SATISFYING))), reference, atol=1.0e-8
+        float(jit_fitness._call(jnp.array(SATISFYING))),
+        reference,
+        rtol=0.0,
+        atol=1.0e-8,
     )
 
     vmap_fitness = _fitness(model, use_jax=True, use_jax_vmap=True)
     assert vmap_fitness._call is vmap_fitness._vmap
     values = np.asarray(vmap_fitness._call(jnp.array([VIOLATING, SATISFYING])))
     assert values.shape == (2,)
-    assert values[0] == RESAMPLE
-    assert np.isclose(values[1], reference, atol=1.0e-8)
+    assert values[0] == _sentinel(vmap_fitness)
+    assert np.isclose(values[1], reference, rtol=0.0, atol=1.0e-8)
 
     # `call` itself must be jit-able by a caller, not only through the `_jit` dispatch.
     fitness = _fitness(model, use_jax=True)
     jitted = jax.jit(fitness.call)
-    assert float(jitted(jnp.asarray(VIOLATING))) == RESAMPLE
-    assert np.isclose(float(jitted(jnp.asarray(SATISFYING))), reference, atol=1.0e-8)
+    assert float(jitted(jnp.asarray(VIOLATING))) == _sentinel(fitness)
+    assert np.isclose(
+        float(jitted(jnp.asarray(SATISFYING))), reference, rtol=0.0, atol=1.0e-8
+    )
 
 
 def assert_child_attached_assertion_is_gathered():
@@ -184,9 +217,9 @@ def assert_child_attached_assertion_is_gathered():
     assert fitness._apply_assertions_traced is True
 
     values = np.asarray(fitness._call(jnp.array([VIOLATING, SATISFYING])))
-    assert values[0] == RESAMPLE
+    assert values[0] == _sentinel(fitness)
     assert np.isclose(
-        values[1], _numpy_figure_of_merit(model, SATISFYING), atol=1.0e-8
+        values[1], _numpy_figure_of_merit(model, SATISFYING), rtol=0.0, atol=1.0e-8
     )
 
 
