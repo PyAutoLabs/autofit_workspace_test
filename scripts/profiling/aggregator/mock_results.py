@@ -83,7 +83,8 @@ def write_template(
 ) -> Path:
     """
     Write one full search-output directory via a test-mode bypass fit and return the
-    leaf directory (the one containing the `metadata` file).
+    leaf directory (the one containing the `files/search.json` that
+    `Aggregator.from_directory` discovers results by).
     """
     template_prefix = f"_template/g{n_gaussians}_s{n_samples}"
 
@@ -92,8 +93,8 @@ def write_template(
     model = model_from(n_gaussians)
     analysis = af.ex.Analysis(data=np.ones(10), noise_map=np.ones(10))
 
-    # A stale template would append duplicate metadata lines (the file is opened in
-    # append mode), so remove any previous template for this config first.
+    # A stale template from an earlier configuration would be resumed rather than
+    # rewritten by the fit below, so remove any previous template for this config first.
     for candidate in (
         root / "test_mode" / Path(template_prefix),
         root / Path(template_prefix),
@@ -167,7 +168,7 @@ def stamp_results(
 ):
     """
     Copy the template `n_results` times under `results_root`, giving each copy a unique
-    `dataset_name` metadata entry and a unique `unique_tag` in its search.json.
+    `unique_tag` in its `files/search.json`.
 
     The unique_tag matters for the sqlite database: fits are keyed by the identifier
     hashed from (search, model, unique_tag), so identical copies would collapse to a
@@ -180,8 +181,6 @@ def stamp_results(
         dataset_name = f"dataset_{i:04d}"
         destination = results_root / dataset_name / "fit"
         shutil.copytree(template_leaf, destination)
-        with open(destination / "metadata", "a") as f:
-            f.write(f"\ndataset_name={dataset_name}")
         search_dict["arguments"]["unique_tag"] = dataset_name
         (destination / "files" / "search.json").write_text(json.dumps(search_dict))
         if zip_results:

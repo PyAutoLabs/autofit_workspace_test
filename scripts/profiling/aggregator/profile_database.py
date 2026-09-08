@@ -11,7 +11,7 @@ Stages timed per grid cell:
 
 - `generate`: building the mock results (context, not a database cost).
 - `database_build`: `from_database` + `add_directory` + commit on a fresh sqlite file.
-- `database_query_unique_tag`: one indexed metadata query.
+- `database_query_unique_tag`: one indexed `unique_tag` query.
 - `database_values_samples`: `values("samples")` on a capped slice.
 - `directory_from_directory` / `directory_values_samples`: the directory Aggregator on
   the same results, same cap, for side-by-side comparison.

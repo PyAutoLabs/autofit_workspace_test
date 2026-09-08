@@ -14,7 +14,7 @@ Stages timed per grid cell:
 - `values_samples_summary`: `values("samples_summary")` — the lightweight summary path.
 - `values_model`: `values("model")`.
 - `values_samples`: `values("samples")` — full `samples.csv` parse per result.
-- `query_dataset_name`: a metadata predicate query.
+- `query_unique_tag`: a `unique_tag` predicate query.
 - `aggregate_csv`: `af.AggregateCSV` catalogue build (the csv_make workflow pattern).
 
 Run from the `autofit_workspace_test` root, e.g.:
@@ -155,8 +155,8 @@ def profile_cell(cell: dict, zip_results: bool, keep: bool) -> dict:
     timings["values_samples"] = timed(lambda: deque(agg.values("samples"), maxlen=0))
 
     agg = fresh_agg()
-    timings["query_dataset_name"] = timed(
-        lambda: agg.query(agg.dataset_name == "dataset_0000")
+    timings["query_unique_tag"] = timed(
+        lambda: agg.query(agg.unique_tag == "dataset_0000")
     )
 
     agg = fresh_agg()
@@ -175,7 +175,7 @@ def profile_cell(cell: dict, zip_results: bool, keep: bool) -> dict:
         agg_images = af.AggregateImages(agg)
         agg_images.output_to_folder(
             results_root.parent / "png",
-            name="dataset_name",
+            name="unique_tag",
             subplots=[
                 SubplotFit.Data,
                 SubplotFit.ModelData,
@@ -192,7 +192,7 @@ def profile_cell(cell: dict, zip_results: bool, keep: bool) -> dict:
         agg_fits = af.AggregateFITS(agg)
         agg_fits.output_to_folder(
             results_root.parent / "fits",
-            name="dataset_name",
+            name="unique_tag",
             hdus=[FITSFit.ModelData, FITSFit.ResidualMap],
         )
 
