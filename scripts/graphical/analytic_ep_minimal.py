@@ -840,7 +840,11 @@ def _run_self_tests():
             f"  laplace: sweeps {ep_l['sweeps']}, converged {ep_l['converged']}, "
             f"max |delta eta| {ep_l['max_delta']:.1e}, skipped {ep_l['skipped']}, "
             f"boundary hits {ep_l['boundary_hits']}  ({t_l:.2f}s)"
-            + ("  (stale: no site updated; scatter returned at its prior)" if stale else "")
+            + (
+                "  (stale: no site updated; scatter returned at its prior)"
+                if stale
+                else ""
+            )
         )
         print_table(rows_l, "EP (laplace)")
         print(
