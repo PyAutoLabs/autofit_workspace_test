@@ -9,6 +9,7 @@ four ways and every column is judged against the closed form of `analytic_refere
     minimal EP           the hand-rolled moments-projection EP of `analytic_ep_minimal.py`
     autofit graphical    a joint `DynestyStatic` fit of `factor_graph.global_prior_model`
     autofit EP           `factor_graph.optimise(af.LaplaceOptimiser(projection="moments"), ...)`
+                         (nested-quadrature moment matching of each hierarchical factor)
 
 The autofit wiring (graph construction, posterior read-out with its message traps, the fact that the
 drawn prior is an extra factor and how the reference accounts for it exactly) is documented in
@@ -51,10 +52,20 @@ from convergence on this 6/7-parameter joint model (a = 2.5). Each likelihood ca
 hierarchical `GaussianPrior` distribution is instantiated per call), so the budget is set by the
 number of calls: `sample="unif"` with `bound="multi", bootstrap=0` converges in ~7-10k calls per
 leg (37 s / 50 s locally); the default bootstrap enlargement needs ~20k calls on leg B for the same
-posterior. Every column prints its wall time; the script runs in ~115 s locally against the 300 s
-CI cap.
+posterior. Every column prints its wall time; the script runs in ~85-120 s locally against the 300 s
+CI cap (the moments-projection EP column is 34-52 s of it on leg B).
 
-__What the first run showed (seed 0, 2026-09-02, PyAutoFit 2026.8.17.1)__
+__Why the EP column runs `projection="moments"`__
+
+Under the default Laplace (`"mode"`) projection the tilted density of every hierarchical factor in
+sigma sits on the sigma = 0 boundary, so it has no interior mode and no negative-definite Hessian:
+the updates end BAD_PROJECTION / FAILURE and the scatter row misses (the first run below).
+`projection="moments"` (PyAutoFit#1654) moment-matches that density instead, by Gauss-Legendre
+quadrature over sigma with a conditional Laplace over (mu, x_i) at each node -- the structure of
+the referee `analytic_ep_minimal.py`. Leg A has no scale variable, so every factor there takes the
+unchanged mode path.
+
+__What the first run showed (seed 0, 2026-09-02, PyAutoFit 2026.8.17.1, Laplace "mode" projection)__
 
     closed form vs minimal EP:      every cell PASS (leg A to 1e-15; leg B scatter a 0.078, b 0.146)
     closed form vs autofit graphical: every cell PASS (leg A max a 0.055, b 0.048; leg B max a 0.085, b 0.045)
@@ -75,13 +86,29 @@ warning firing. The minimal EP with a Laplace projection reproduces the stale-fa
 deterministically -- every site update rejected, sigma returned at its prior
 (`analytic_ep_minimal.py`): the tilted density of every hierarchical site is unbounded as sigma -> 0.
 
+__What the moments run shows (seed 0, 2026-09-30, PyAutoFit 536049fa2 = main after #1656; 119 s)__
+
+    closed form vs minimal EP:        every cell PASS (leg A a = b = 0.000; leg B scatter a 0.078, b 0.146)
+    closed form vs autofit graphical: every cell PASS (leg A max a 0.093, b 0.058; leg B max a 0.091, b 0.047)
+    closed form vs autofit EP:        every cell PASS -- PARITY: PASS (41/41)
+
+Autofit EP, leg A: every row a = b = 0.000 at the printed precision (mu 50.8596 +/- 4.1102 vs
+50.8595 +/- 4.1104); HierarchicalFactor SUCCESS=14. Leg B: sigma 6.3401 +/- 2.4609 against the
+closed form's 6.5667 +/- 2.8832 (a 0.079, b 0.146 -- the Gaussian-matching bias on a skewed
+posterior, the same as the minimal EP's 6.3423 +/- 2.4612), mu a 0.021 b 0.061, x_i a <= 0.018
+b <= 0.010; the sigma message is a `TruncatedNormalMessage` with its limits (0, 100) kept;
+HierarchicalFactor SUCCESS=25 with no BAD_PROJECTION or FAILURE. Column times: leg A graphical
+22.6 s, EP 1.7 s; leg B graphical 40.7 s, EP 52.1 s.
+
 __Status__
 
-Parked NEEDS_FIX 2026-09-02 in `config/build/no_run.yaml`: the autofit-EP column fails against the
-closed form because of the PyAutoFit defects tracked under PyAutoFit#1405 / autofit_workspace_test#91
-(D1 id-0 prior / FactorValue collision, D2/D3 Laplace projection). The script is intentionally left
-exit-1-on-fail as the regression check that turns green with the fix; the closed form, minimal EP and
-graphical columns pass.
+Curated into the smoke gate on 2026-09-30 (PyAutoFit#1654 / #1656): with the moments projection
+every autofit-EP cell passes, and a FAIL on the EP column is a regression. The graphical column is
+an unseeded `DynestyStatic` fit. In six runs on 2026-09-30 the script exited 1 twice, both times with
+the EP column green; the one miss inspected was the graphical sigma cell (6.2453 +/- 2.5735, a 0.111
+against 0.10). A lone graphical-column miss is sampler noise to re-run, not an EP regression.
+Tolerances are not loosened for it, and seeding or re-budgeting the joint fit is a CI-speed / flake
+follow-up.
 
 __Env__ (Developer Only)
 
