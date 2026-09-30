@@ -4,7 +4,7 @@ Integration Test: Analytic Gaussian Benchmark -- Hyper-Prior Family Sweep throug
 
 The prior-family stress test of autofit_workspace_test#91 (leg B, sigma unknown): the same conjugate
 hierarchical Gaussian model with three hyper-prior families on the parent scatter, each run through
-autofit's EP (`factor_graph.optimise(af.LaplaceOptimiser(), ...)`, no sampler) and judged against its
+autofit's EP (`factor_graph.optimise(af.LaplaceOptimiser(projection="moments"), ...)`, no sampler) and judged against its
 own closed form (`analytic_reference.leg_b_reference`) and the minimal hand-rolled EP
 (`analytic_ep_minimal.ep_leg_b`, moments projection):
 
@@ -39,7 +39,7 @@ __Tolerances (issue #91; a = |dmean| / std_ref, b = |std / std_ref - 1|)__
 
     minimal EP (moments):   scatter row a 0.20, b 0.30; mu and x_i rows a 0.05, b 0.16
                             (per-row calibration over seeds 0-4 recorded in `analytic_ep_minimal.py`)
-    autofit EP (Laplace):   a 0.15, b 0.25 on every row
+    autofit EP (moments):   a 0.15, b 0.25 on every row
     hard caps:              every EP column's E[sigma] inside the closed-form [q05, q95]; no std error > 50%
 
 For the loggaussian family autofit's E[sigma] is exp(m + s^2/2) of its log-space message. The script

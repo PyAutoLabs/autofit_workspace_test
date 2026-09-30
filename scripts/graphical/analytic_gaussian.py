@@ -8,7 +8,7 @@ four ways and every column is judged against the closed form of `analytic_refere
     closed form          exact posterior (leg A analytic, leg B by deterministic quadrature)
     minimal EP           the hand-rolled moments-projection EP of `analytic_ep_minimal.py`
     autofit graphical    a joint `DynestyStatic` fit of `factor_graph.global_prior_model`
-    autofit EP           `factor_graph.optimise(af.LaplaceOptimiser(), ...)`
+    autofit EP           `factor_graph.optimise(af.LaplaceOptimiser(projection="moments"), ...)`
 
 The autofit wiring (graph construction, posterior read-out with its message traps, the fact that the
 drawn prior is an extra factor and how the reference accounts for it exactly) is documented in
@@ -29,7 +29,7 @@ __Tolerances (issue #91 table; a = |dmean| / std_ref, b = |std / std_ref - 1|)__
 
     column                    leg A (a, b)     leg B (a, b)
     minimal EP (moments)      1e-6, 1e-6       scatter row 0.20, 0.30; mu and x_i rows 0.05, 0.16
-    autofit EP (Laplace)      0.01, 0.02       0.15, 0.25
+    autofit EP (moments)      0.01, 0.02       0.15, 0.25
     autofit graphical         0.10, 0.15       0.10, 0.15
 
 The leg-B minimal-EP values are the per-row calibration recorded in `analytic_ep_minimal.py` (2x the

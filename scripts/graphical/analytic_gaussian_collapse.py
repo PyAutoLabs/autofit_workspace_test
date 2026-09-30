@@ -125,6 +125,12 @@ INITIAL_SCATTER = 10.0  # the hyper-prior mean, `classify.py`'s INITIAL
 GUARD_MEAN_FRACTION = 0.2
 GUARD_RELATIVE_ERROR = 0.5
 
+# The moments-projection accuracy check: |E_EP[sigma] - E_ref[sigma]| <= 0.5 std_ref per seed. It is
+# printed on every seed; it joins the seed verdict only when SCATTER_CHECK_GATES is True (see the
+# `__Status__` paragraph for why it is reported but not gated yet).
+SCATTER_CHECK_STD = 0.5
+SCATTER_CHECK_GATES = False
+
 
 def scatter_reverted_rows(name, variable_name):
     """
@@ -173,7 +179,7 @@ def truncated(mean, sigma):
 __Seeds__
 """
 print(
-    "Analytic Gaussian benchmark -- phase-2 collapse configuration (truncated priors, kl_tol 0.05, max_steps 20, Laplace)"
+    "Analytic Gaussian benchmark -- phase-2 collapse configuration (truncated priors, kl_tol 0.05, max_steps 20, LaplaceOptimiser(projection='moments'))"
 )
 print(
     f"  {'seed':<5}{'ref E[sigma]':>13}{'q05':>8}{'q50':>8}{'q95':>8} | {'EP sigma':>10} +/- {'std':<9} {'inside':<7}{'sig-rev':<9}{'class':<14}{'ref mu':>10} | {'EP mu':>10} +/- {'std':<8} {'time':>6}"
@@ -202,6 +208,8 @@ for seed in SEEDS:
 
     scatter, err = post["sigma"][:2]
     inside = ref["sigma_q05"] <= scatter <= ref["sigma_q95"]
+    scatter_pull = abs(scatter - ref["sigma_mean"]) / ref["sigma_std"]
+    close = scatter_pull <= SCATTER_CHECK_STD
     flags = ep_flag_summary(name)
     updated = (
         "HierarchicalFactor" in flags
@@ -222,13 +230,16 @@ for seed in SEEDS:
     documented = ("scale-collapse" in warnings_block) or (
         "STALE FACTORS" in warnings_block
     )
-    ok = (inside and updated) or (label != "RECOVER" and documented)
+    ok = (inside and updated and (close or not SCATTER_CHECK_GATES)) or (
+        label != "RECOVER" and documented
+    )
     results.append(
         dict(
             seed=seed,
             ok=ok,
             label=label,
             inside=inside,
+            close=close,
             documented=documented,
             scatter=scatter,
             err=err,
@@ -242,12 +253,18 @@ for seed in SEEDS:
         f"{post['mu'][0]:>10.4f} +/- {post['mu'][1]:<8.3g} {elapsed:>5.1f}s"
     )
     print(f"        sigma message: {post['sigma'][2]}")
+    print(
+        f"        scatter check: |E_EP - E_ref| / std_ref = {scatter_pull:.3f} "
+        f"({'within' if close else 'OUTSIDE'} {SCATTER_CHECK_STD} std_ref = {SCATTER_CHECK_STD * ref['sigma_std']:.3f}; "
+        f"{'gating' if SCATTER_CHECK_GATES else 'reported, not gating'})"
+    )
     print(f"        flags: {flags}")
     print(
         f"        ep_diagnostics.results warnings: {warnings_block if warnings_block else '(none)'}"
     )
     print(
-        f"        seed verdict: {'PASS' if ok else 'FAIL'} ({'posterior inside [q05, q95]' if (inside and updated) else ('documented collapse' if documented else 'SILENT ' + label)})"
+        f"        seed verdict: {'PASS' if ok else 'FAIL'} ({'posterior inside [q05, q95]' if (inside and updated) else ('documented collapse' if documented else 'SILENT ' + label)}"
+        f"{'' if (close or not SCATTER_CHECK_GATES) else ', scatter outside ' + str(SCATTER_CHECK_STD) + ' std_ref'})"
     )
 
 """
@@ -262,6 +279,8 @@ print(
     f"\nclassification: "
     + ", ".join(f"{k} {v}/{len(results)}" for k, v in tally.items())
     + f"; inside [q05, q95] on {sum(r['inside'] for r in results)}/{len(results)} seeds; library warning on {sum(r['documented'] for r in results)}/{len(results)}"
+    + f"; scatter within {SCATTER_CHECK_STD} std_ref on {sum(r['close'] for r in results)}/{len(results)} seeds"
+    + f" ({'gating' if SCATTER_CHECK_GATES else 'reported, not gating'})"
 )
 verdict = "PASS" if n_ok == len(results) else "FAIL"
 print(f"COLLAPSE CONFIG: {verdict} ({n_ok}/{len(results)} seeds)")

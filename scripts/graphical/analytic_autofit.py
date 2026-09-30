@@ -144,13 +144,27 @@ def output_dir(name):
     return Path(af.DirectoryPaths(path_prefix=Path("graphical"), name=name).output_path)
 
 
-def run_autofit_ep(factor_graph, name, kl_tol=1e-4, max_steps=30, seed=0, updater=None):
-    """`factor_graph.optimise` with `af.LaplaceOptimiser()`; numpy seeded; previous output removed."""
+def run_autofit_ep(
+    factor_graph,
+    name,
+    kl_tol=1e-4,
+    max_steps=30,
+    seed=0,
+    updater=None,
+    projection="moments",
+):
+    """
+    `factor_graph.optimise` with `af.LaplaceOptimiser(projection=projection)`; numpy seeded; previous
+    output removed. `projection="moments"` (the default here, and what every benchmark script runs)
+    moment-matches each hierarchical factor's tilted density by nested quadrature over the scale
+    variable; `"mode"` is the library default Laplace projection, whose tilted density in sigma has no
+    interior mode on this benchmark (autofit/graphical/README.md section 3.5).
+    """
     shutil.rmtree(output_dir(name).parent, ignore_errors=True)
     np.random.seed(seed)
     kwargs = dict(updater=updater) if updater is not None else {}
     return factor_graph.optimise(
-        af.LaplaceOptimiser(),
+        af.LaplaceOptimiser(projection=projection),
         paths=af.DirectoryPaths(path_prefix=Path("graphical"), name=name),
         ep_history=af.EPHistory(kl_tol=kl_tol),
         max_steps=max_steps,
