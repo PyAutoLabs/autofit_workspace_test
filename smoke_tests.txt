@@ -12,3 +12,4 @@ graphical/shared_state.py
 graphical/analytic_reference.py
 graphical/analytic_ep_minimal.py
 graphical/analytic_gaussian_collapse.py
+graphical/analytic_gaussian.py
