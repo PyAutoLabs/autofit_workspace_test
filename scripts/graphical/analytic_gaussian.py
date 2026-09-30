@@ -8,7 +8,8 @@ four ways and every column is judged against the closed form of `analytic_refere
     closed form          exact posterior (leg A analytic, leg B by deterministic quadrature)
     minimal EP           the hand-rolled moments-projection EP of `analytic_ep_minimal.py`
     autofit graphical    a joint `DynestyStatic` fit of `factor_graph.global_prior_model`
-    autofit EP           `factor_graph.optimise(af.LaplaceOptimiser(), ...)`
+    autofit EP           `factor_graph.optimise(af.LaplaceOptimiser(projection="moments"), ...)`
+                         (nested-quadrature moment matching of each hierarchical factor)
 
 The autofit wiring (graph construction, posterior read-out with its message traps, the fact that the
 drawn prior is an extra factor and how the reference accounts for it exactly) is documented in
@@ -29,7 +30,7 @@ __Tolerances (issue #91 table; a = |dmean| / std_ref, b = |std / std_ref - 1|)__
 
     column                    leg A (a, b)     leg B (a, b)
     minimal EP (moments)      1e-6, 1e-6       scatter row 0.20, 0.30; mu and x_i rows 0.05, 0.16
-    autofit EP (Laplace)      0.01, 0.02       0.15, 0.25
+    autofit EP (moments)      0.01, 0.02       0.15, 0.25
     autofit graphical         0.10, 0.15       0.10, 0.15
 
 The leg-B minimal-EP values are the per-row calibration recorded in `analytic_ep_minimal.py` (2x the
@@ -46,15 +47,31 @@ form and EP); `median_pdf` +/- the averaged `errors_at_sigma(1.0)` is printed as
 On leg B's skewed sigma posterior the median sits 0.2 reference-std below the mean by construction
 (q50 = 6.0 vs E = 6.6 on seed 0), which is not a sampler error.
 
+The joint fit is seeded (`analytic_autofit.SeededDynestyStatic`, dynesty `rstate` plus `random` /
+`numpy.random` for the initializer, seed 0), so the column is the same on every run. Unseeded, its
+leg-B sigma cell passed or failed on sampler noise: in six unseeded runs on 2026-09-30 the script
+exited 1 twice, with the EP column green both times. The one miss inspected was sigma
+6.2453 +/- 2.5735, a 0.111 against 0.10.
+
 `DynestyStatic` at the `ep_parity.py` budget (nlive 50, rwalk, maxcall 3000) stops on `maxcall` far
 from convergence on this 6/7-parameter joint model (a = 2.5). Each likelihood call costs ~5 ms (the
 hierarchical `GaussianPrior` distribution is instantiated per call), so the budget is set by the
 number of calls: `sample="unif"` with `bound="multi", bootstrap=0` converges in ~7-10k calls per
 leg (37 s / 50 s locally); the default bootstrap enlargement needs ~20k calls on leg B for the same
-posterior. Every column prints its wall time; the script runs in ~115 s locally against the 300 s
-CI cap.
+posterior. Every column prints its wall time; the script runs in ~85-130 s locally against the 300 s
+CI cap (the moments-projection EP column is 34-52 s of it on leg B).
 
-__What the first run showed (seed 0, 2026-09-02, PyAutoFit 2026.8.17.1)__
+__Why the EP column runs `projection="moments"`__
+
+Under the default Laplace (`"mode"`) projection the tilted density of every hierarchical factor in
+sigma sits on the sigma = 0 boundary, so it has no interior mode and no negative-definite Hessian:
+the updates end BAD_PROJECTION / FAILURE and the scatter row misses (the first run below).
+`projection="moments"` (PyAutoFit#1654) moment-matches that density instead, by Gauss-Legendre
+quadrature over sigma with a conditional Laplace over (mu, x_i) at each node -- the structure of
+the referee `analytic_ep_minimal.py`. Leg A has no scale variable, so every factor there takes the
+unchanged mode path.
+
+__What the first run showed (seed 0, 2026-09-02, PyAutoFit 2026.8.17.1, Laplace "mode" projection)__
 
     closed form vs minimal EP:      every cell PASS (leg A to 1e-15; leg B scatter a 0.078, b 0.146)
     closed form vs autofit graphical: every cell PASS (leg A max a 0.055, b 0.048; leg B max a 0.085, b 0.045)
@@ -75,13 +92,29 @@ warning firing. The minimal EP with a Laplace projection reproduces the stale-fa
 deterministically -- every site update rejected, sigma returned at its prior
 (`analytic_ep_minimal.py`): the tilted density of every hierarchical site is unbounded as sigma -> 0.
 
+__What the moments run shows (seed 0, 2026-09-30, PyAutoFit 536049fa2 = main after #1656; smoke profile, 96-130 s)__
+
+The same numbers came out on three repeated runs (seeded joint fit):
+
+    closed form vs minimal EP:        every cell PASS (leg A a = b = 0.000; leg B scatter a 0.078, b 0.146)
+    closed form vs autofit graphical: every cell PASS (leg A max a 0.056, b 0.029; leg B max a 0.070,
+                                      b 0.110; sigma 6.7287 +/- 2.9072, a 0.056, b 0.008)
+    closed form vs autofit EP:        every cell PASS -- PARITY: PASS (41/41)
+
+Autofit EP, leg A: every row a = b = 0.000 at the printed precision (mu 50.8596 +/- 4.1102 vs
+50.8595 +/- 4.1104); HierarchicalFactor SUCCESS=14. Leg B: sigma 6.3401 +/- 2.4609 against the
+closed form's 6.5667 +/- 2.8832 (a 0.079, b 0.146 -- the Gaussian-matching bias on a skewed
+posterior, the same as the minimal EP's 6.3423 +/- 2.4612), mu a 0.021 b 0.061, x_i a <= 0.018
+b <= 0.010; the sigma message is a `TruncatedNormalMessage` with its limits (0, 100) kept;
+HierarchicalFactor SUCCESS=25 with no BAD_PROJECTION or FAILURE. Column times (first of the three
+runs): leg A graphical 19.0 s, EP 1.3 s; leg B graphical 26.9 s, EP 46.4 s.
+
 __Status__
 
-Parked NEEDS_FIX 2026-09-02 in `config/build/no_run.yaml`: the autofit-EP column fails against the
-closed form because of the PyAutoFit defects tracked under PyAutoFit#1405 / autofit_workspace_test#91
-(D1 id-0 prior / FactorValue collision, D2/D3 Laplace projection). The script is intentionally left
-exit-1-on-fail as the regression check that turns green with the fix; the closed form, minimal EP and
-graphical columns pass.
+Curated into the smoke gate on 2026-09-30 (PyAutoFit#1654 / #1656): with the moments projection
+every autofit-EP cell passes, and a FAIL on any column is a regression. The graphical column is
+seeded and therefore deterministic, so its cells no longer pass or fail on sampler noise. Its
+tolerances are unchanged.
 
 __Env__ (Developer Only)
 

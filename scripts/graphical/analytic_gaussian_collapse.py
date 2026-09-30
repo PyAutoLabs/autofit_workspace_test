@@ -9,13 +9,23 @@ conjugate benchmark of autofit_workspace_test#91, where the answer is known in c
     drawn x_i      af.TruncatedGaussianPrior(50, 20, 0, 100)
     parent mean    af.TruncatedGaussianPrior(50, 10, 0, 100)
     parent scatter af.TruncatedGaussianPrior(10, 5, 0, 100)
-    EP             af.LaplaceOptimiser(), af.EPHistory(kl_tol=0.05), max_steps=20, default updater
+    EP             af.LaplaceOptimiser(projection="moments"), af.EPHistory(kl_tol=0.05), max_steps=20,
+                   default updater
     N = 5 datasets, seeds 0-4
 
 `toy.py` fits `af.ex.Gaussian` profiles with a `DynestyStatic` per analysis factor; `run_once.py`'s
-`TOY_OPT=laplace` lever swaps that for `LaplaceOptimiser`, which is what runs here (every factor
-Laplace; five seeds must fit in the ~120 s script budget). The analysis factors are exactly Gaussian
-in x_i, so the per-dataset likelihood is reproduced without a sampler.
+`TOY_OPT=laplace` lever swaps that for `LaplaceOptimiser`, which is what runs here, now with
+`projection="moments"` like its two siblings (five seeds must fit in the ~120 s script budget). The
+analysis factors are exactly Gaussian in x_i, so the per-dataset likelihood is reproduced without a
+sampler.
+
+What `projection="moments"` reaches on this configuration: every variable here carries a truncated
+prior, and the moments path makes every finite-limit variable an outer quadrature variable. Each
+`HierarchicalFactor` therefore has three (mu, sigma, x_i), more than `moment_max_outer=2`, so its
+updates fall back to the mode (Laplace) projection -- 62 of 62 hierarchical calls in an instrumented
+run on 2026-09-30. The dataset and prior factors (one outer variable each) take the moments path.
+Raising `moment_max_outer` to 3 is not a way out: at `n_quadrature=16` the five seeds took 25-40 s
+each and four ended STALE, and at 32 nodes two seeds did not finish in 10 minutes.
 
 __Reference__
 
@@ -52,6 +62,12 @@ on the scatter). After each run the library's own `ep_diagnostics.results` is re
 with the `ep_history.csv` status-flag tally and its per-variable `reverted_variables` tally for the
 scatter.
 
+__Scatter check (reported, not yet gating)__
+
+Per seed the script also prints |E_EP[sigma] - E_ref[sigma]| / std_ref against 0.5, the accuracy
+the moments projection is built to reach. It joins the seed verdict when `SCATTER_CHECK_GATES` is
+True, which waits until the hierarchical factors of this configuration reach the moments path.
+
 __Acceptance (issue #91: "sigma inside [q05, q95] or documented collapse")__
 
 A seed passes if E_EP[sigma] is a posterior (at least one hierarchical-factor SUCCESS) lying inside
@@ -85,10 +101,29 @@ __What the same run shows on PyAutoFit main 5375f4d63 (#1558/#1560/#1562 merged;
 COLLAPSE CONFIG: PASS (5/5 seeds): every seed's E_EP[sigma] is a posterior (HierarchicalFactor
 SUCCESS on every seed) inside the closed-form [q05, q95]; no library warning is needed or emitted.
 
+__What the same run shows with `projection="moments"` (2026-09-30, PyAutoFit 536049fa2; 27 s)__
+
+    seed 0   RECOVER         9.29 +/- 3.53  (closed form 6.57 +/- 2.88, [2.98, 12.15]); scatter 0.945 std_ref
+    seed 1   RECOVER        10.74 +/- 3.20  (closed form 10.46, [6.26, 15.99]); scatter 0.094 std_ref
+    seed 2   RECOVER        13.35 +/- 2.92  (closed form 13.57, [9.22, 18.94]); scatter 0.076 std_ref
+    seed 3   RECOVER        13.88 +/- 2.88  (closed form 14.35, [10.00, 19.65]); scatter 0.159 std_ref
+    seed 4   RECOVER        12.21 +/- 3.03  (closed form 12.48, [8.17, 17.89]); scatter 0.089 std_ref
+
+COLLAPSE CONFIG: PASS (5/5 seeds). The scatter is within 0.5 std_ref on 4/5 seeds. Seed 0 misses:
+its hierarchical factors end BAD_PROJECTION=8 FAILURE=1 SUCCESS=1, the mode-path fallback described
+above.
+
 __Status__
 
-Curated into the smoke gate since 2026-09-02: with PyAutoFit#1558/#1560/#1562 every seed reads
-RECOVER; a SILENT, STALE or PATHOLOGICAL verdict is a regression.
+Curated into the smoke gate since 2026-09-02: every seed reads RECOVER, and a SILENT, STALE or
+PATHOLOGICAL verdict is a regression.
+
+The hierarchical factors here still run the mode path, for the three-outer-variable reason above.
+That is why the 0.5 std_ref scatter check is reported, not gated. The proposed library change is
+to promote only scale variables to outer variables, not every variable with a finite limit. It is
+filed as the second item of PyAutoMind
+`draft/bug/autofit/ep_moments_loggaussian_transformed_scatter.md`. Once it lands, set
+`SCATTER_CHECK_GATES = True`.
 
 """
 
@@ -124,6 +159,12 @@ EP_KWARGS = dict(kl_tol=0.05, max_steps=20)
 INITIAL_SCATTER = 10.0  # the hyper-prior mean, `classify.py`'s INITIAL
 GUARD_MEAN_FRACTION = 0.2
 GUARD_RELATIVE_ERROR = 0.5
+
+# The moments-projection accuracy check: |E_EP[sigma] - E_ref[sigma]| <= 0.5 std_ref per seed. It is
+# printed on every seed; it joins the seed verdict only when SCATTER_CHECK_GATES is True (see the
+# `__Status__` paragraph for why it is reported but not gated yet).
+SCATTER_CHECK_STD = 0.5
+SCATTER_CHECK_GATES = False
 
 
 def scatter_reverted_rows(name, variable_name):
@@ -173,7 +214,7 @@ def truncated(mean, sigma):
 __Seeds__
 """
 print(
-    "Analytic Gaussian benchmark -- phase-2 collapse configuration (truncated priors, kl_tol 0.05, max_steps 20, Laplace)"
+    "Analytic Gaussian benchmark -- phase-2 collapse configuration (truncated priors, kl_tol 0.05, max_steps 20, LaplaceOptimiser(projection='moments'))"
 )
 print(
     f"  {'seed':<5}{'ref E[sigma]':>13}{'q05':>8}{'q50':>8}{'q95':>8} | {'EP sigma':>10} +/- {'std':<9} {'inside':<7}{'sig-rev':<9}{'class':<14}{'ref mu':>10} | {'EP mu':>10} +/- {'std':<8} {'time':>6}"
@@ -202,6 +243,8 @@ for seed in SEEDS:
 
     scatter, err = post["sigma"][:2]
     inside = ref["sigma_q05"] <= scatter <= ref["sigma_q95"]
+    scatter_pull = abs(scatter - ref["sigma_mean"]) / ref["sigma_std"]
+    close = scatter_pull <= SCATTER_CHECK_STD
     flags = ep_flag_summary(name)
     updated = (
         "HierarchicalFactor" in flags
@@ -222,13 +265,16 @@ for seed in SEEDS:
     documented = ("scale-collapse" in warnings_block) or (
         "STALE FACTORS" in warnings_block
     )
-    ok = (inside and updated) or (label != "RECOVER" and documented)
+    ok = (inside and updated and (close or not SCATTER_CHECK_GATES)) or (
+        label != "RECOVER" and documented
+    )
     results.append(
         dict(
             seed=seed,
             ok=ok,
             label=label,
             inside=inside,
+            close=close,
             documented=documented,
             scatter=scatter,
             err=err,
@@ -242,12 +288,18 @@ for seed in SEEDS:
         f"{post['mu'][0]:>10.4f} +/- {post['mu'][1]:<8.3g} {elapsed:>5.1f}s"
     )
     print(f"        sigma message: {post['sigma'][2]}")
+    print(
+        f"        scatter check: |E_EP - E_ref| / std_ref = {scatter_pull:.3f} "
+        f"({'within' if close else 'OUTSIDE'} {SCATTER_CHECK_STD} std_ref = {SCATTER_CHECK_STD * ref['sigma_std']:.3f}; "
+        f"{'gating' if SCATTER_CHECK_GATES else 'reported, not gating'})"
+    )
     print(f"        flags: {flags}")
     print(
         f"        ep_diagnostics.results warnings: {warnings_block if warnings_block else '(none)'}"
     )
     print(
-        f"        seed verdict: {'PASS' if ok else 'FAIL'} ({'posterior inside [q05, q95]' if (inside and updated) else ('documented collapse' if documented else 'SILENT ' + label)})"
+        f"        seed verdict: {'PASS' if ok else 'FAIL'} ({'posterior inside [q05, q95]' if (inside and updated) else ('documented collapse' if documented else 'SILENT ' + label)}"
+        f"{'' if (close or not SCATTER_CHECK_GATES) else ', scatter outside ' + str(SCATTER_CHECK_STD) + ' std_ref'})"
     )
 
 """
@@ -262,6 +314,8 @@ print(
     f"\nclassification: "
     + ", ".join(f"{k} {v}/{len(results)}" for k, v in tally.items())
     + f"; inside [q05, q95] on {sum(r['inside'] for r in results)}/{len(results)} seeds; library warning on {sum(r['documented'] for r in results)}/{len(results)}"
+    + f"; scatter within {SCATTER_CHECK_STD} std_ref on {sum(r['close'] for r in results)}/{len(results)} seeds"
+    + f" ({'gating' if SCATTER_CHECK_GATES else 'reported, not gating'})"
 )
 verdict = "PASS" if n_ok == len(results) else "FAIL"
 print(f"COLLAPSE CONFIG: {verdict} ({n_ok}/{len(results)} seeds)")

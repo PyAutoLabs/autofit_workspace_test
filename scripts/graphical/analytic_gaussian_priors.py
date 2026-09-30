@@ -4,9 +4,9 @@ Integration Test: Analytic Gaussian Benchmark -- Hyper-Prior Family Sweep throug
 
 The prior-family stress test of autofit_workspace_test#91 (leg B, sigma unknown): the same conjugate
 hierarchical Gaussian model with three hyper-prior families on the parent scatter, each run through
-autofit's EP (`factor_graph.optimise(af.LaplaceOptimiser(), ...)`, no sampler) and judged against its
-own closed form (`analytic_reference.leg_b_reference`) and the minimal hand-rolled EP
-(`analytic_ep_minimal.ep_leg_b`, moments projection):
+autofit's EP (`factor_graph.optimise(af.LaplaceOptimiser(projection="moments"), ...)`, no
+sampler) and judged against its own closed form (`analytic_reference.leg_b_reference`) and the
+minimal hand-rolled EP (`analytic_ep_minimal.ep_leg_b`, moments projection):
 
     gaussian       af.GaussianPrior(10, 5)                          theta = sigma
     truncated      af.TruncatedGaussianPrior(10, 5, 0, 100)         theta = sigma
@@ -39,7 +39,7 @@ __Tolerances (issue #91; a = |dmean| / std_ref, b = |std / std_ref - 1|)__
 
     minimal EP (moments):   scatter row a 0.20, b 0.30; mu and x_i rows a 0.05, b 0.16
                             (per-row calibration over seeds 0-4 recorded in `analytic_ep_minimal.py`)
-    autofit EP (Laplace):   a 0.15, b 0.25 on every row
+    autofit EP (moments):   a 0.15, b 0.25 on every row
     hard caps:              every EP column's E[sigma] inside the closed-form [q05, q95]; no std error > 50%
 
 For the loggaussian family autofit's E[sigma] is exp(m + s^2/2) of its log-space message. The script
@@ -47,7 +47,7 @@ ends `PARITY: PASS|FAIL (k/n)` and exits 1 on any failure; nothing is loosened t
 own EP diagnostics (`ep_diagnostics.results` warnings, `ep_history.csv` status flags) are printed per
 family so a failure can be read against them.
 
-__What the first run showed (seed 0, 2026-09-02, PyAutoFit 2026.8.17.1)__
+__What the first run showed (seed 0, 2026-09-02, PyAutoFit 2026.8.17.1, Laplace "mode" projection)__
 
 The minimal EP passes every cell of every family. Autofit EP (PARITY: FAIL, 39/48):
 
@@ -61,13 +61,33 @@ The minimal EP passes every cell of every family. Autofit EP (PARITY: FAIL, 39/4
 (1.816 +/- 0.372 vs 1.834 +/- 0.361) while autofit EP matches neither the closed form (a 1.30) nor the
 no-Jacobian reference (a 0.89): the log-space message is simply never projected.
 
+__What the moments run shows (seed 0, 2026-09-30, PyAutoFit 536049fa2 = main after #1656; 145 s)__
+
+The minimal EP passes every cell of every family again. Autofit EP (PARITY: FAIL, 43/48):
+
+    gaussian       16/16 PASS: sigma 6.3079 +/- 2.5678 vs closed form 6.5667 +/- 2.8832 (a 0.090,
+                   b 0.109); HierarchicalFactor SUCCESS=25; 40.1 s
+    truncated      16/16 PASS: sigma 6.3401 +/- 2.4609 (a 0.079, b 0.146), limits (0, 100) kept;
+                   HierarchicalFactor SUCCESS=25; 57.4 s
+    loggaussian    11/16: log sigma 3.2832 +/- 0.7413 vs closed form 1.8338 +/- 0.3608 (a 4.017,
+                   b 1.054), E[sigma] 35.09 outside [q05, q95] = [3.54, 11.59]; mu std 119% high;
+                   x_2 and x_4 a 0.22-0.25; HierarchicalFactor SUCCESS=20, PriorFactor FAILURE=3 and
+                   a STALE FACTORS warning for the log-space prior factor; 45.2 s
+
+#1498 verdict: LIBRARY FINDING, not the #1498 fingerprint -- minimal EP 1.8164 +/- 0.3716 matches the
+closed form while autofit EP matches neither it (a 4.017) nor the no-Jacobian reference (a 3.502).
+
 __Status__
 
-Parked NEEDS_FIX 2026-09-02 in `config/build/no_run.yaml`: the autofit-EP column fails against the
-closed form because of the PyAutoFit defects tracked under PyAutoFit#1405 / autofit_workspace_test#91
-(D2 Laplace covariance, D4 truncation limits and D5 log-space transform lost in projection). The
-script is intentionally left exit-1-on-fail as the regression check that turns green with the fix;
-the closed form, minimal EP and graphical columns pass.
+Parked NEEDS_FIX in `config/build/no_run.yaml` (reason re-dated 2026-09-30). The moments projection
+(PyAutoFit#1654 / #1656) cures the gaussian and truncated families, but it drifts the log-space
+(`LogGaussianPrior`, `TransformedMessage`) scatter upward -- log sigma 3.28 against the mode path's
+1.53 and the closed form's 1.83. The suspected cause is a Jacobian counted twice for the
+`TransformedMessage` outer axis of the moments quadrature, plus the prior factor's physical density
+set against a base-space cavity. It is filed as PyAutoMind
+`draft/bug/autofit/ep_moments_loggaussian_transformed_scatter.md`. The script stays
+exit-1-on-fail as the regression check that turns green with that fix; rows and tolerances are
+unchanged.
 
 """
 
