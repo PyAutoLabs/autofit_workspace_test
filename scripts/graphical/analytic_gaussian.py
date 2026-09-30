@@ -47,12 +47,18 @@ form and EP); `median_pdf` +/- the averaged `errors_at_sigma(1.0)` is printed as
 On leg B's skewed sigma posterior the median sits 0.2 reference-std below the mean by construction
 (q50 = 6.0 vs E = 6.6 on seed 0), which is not a sampler error.
 
+The joint fit is seeded (`analytic_autofit.SeededDynestyStatic`, dynesty `rstate` plus `random` /
+`numpy.random` for the initializer, seed 0), so the column is the same on every run. Unseeded, its
+leg-B sigma cell passed or failed on sampler noise: in six unseeded runs on 2026-09-30 the script
+exited 1 twice, with the EP column green both times. The one miss inspected was sigma
+6.2453 +/- 2.5735, a 0.111 against 0.10.
+
 `DynestyStatic` at the `ep_parity.py` budget (nlive 50, rwalk, maxcall 3000) stops on `maxcall` far
 from convergence on this 6/7-parameter joint model (a = 2.5). Each likelihood call costs ~5 ms (the
 hierarchical `GaussianPrior` distribution is instantiated per call), so the budget is set by the
 number of calls: `sample="unif"` with `bound="multi", bootstrap=0` converges in ~7-10k calls per
 leg (37 s / 50 s locally); the default bootstrap enlargement needs ~20k calls on leg B for the same
-posterior. Every column prints its wall time; the script runs in ~85-120 s locally against the 300 s
+posterior. Every column prints its wall time; the script runs in ~85-130 s locally against the 300 s
 CI cap (the moments-projection EP column is 34-52 s of it on leg B).
 
 __Why the EP column runs `projection="moments"`__
@@ -86,10 +92,13 @@ warning firing. The minimal EP with a Laplace projection reproduces the stale-fa
 deterministically -- every site update rejected, sigma returned at its prior
 (`analytic_ep_minimal.py`): the tilted density of every hierarchical site is unbounded as sigma -> 0.
 
-__What the moments run shows (seed 0, 2026-09-30, PyAutoFit 536049fa2 = main after #1656; 119 s)__
+__What the moments run shows (seed 0, 2026-09-30, PyAutoFit 536049fa2 = main after #1656; smoke profile, 96-130 s)__
+
+The same numbers came out on three repeated runs (seeded joint fit):
 
     closed form vs minimal EP:        every cell PASS (leg A a = b = 0.000; leg B scatter a 0.078, b 0.146)
-    closed form vs autofit graphical: every cell PASS (leg A max a 0.093, b 0.058; leg B max a 0.091, b 0.047)
+    closed form vs autofit graphical: every cell PASS (leg A max a 0.056, b 0.029; leg B max a 0.070,
+                                      b 0.110; sigma 6.7287 +/- 2.9072, a 0.056, b 0.008)
     closed form vs autofit EP:        every cell PASS -- PARITY: PASS (41/41)
 
 Autofit EP, leg A: every row a = b = 0.000 at the printed precision (mu 50.8596 +/- 4.1102 vs
@@ -97,18 +106,15 @@ Autofit EP, leg A: every row a = b = 0.000 at the printed precision (mu 50.8596 
 closed form's 6.5667 +/- 2.8832 (a 0.079, b 0.146 -- the Gaussian-matching bias on a skewed
 posterior, the same as the minimal EP's 6.3423 +/- 2.4612), mu a 0.021 b 0.061, x_i a <= 0.018
 b <= 0.010; the sigma message is a `TruncatedNormalMessage` with its limits (0, 100) kept;
-HierarchicalFactor SUCCESS=25 with no BAD_PROJECTION or FAILURE. Column times: leg A graphical
-22.6 s, EP 1.7 s; leg B graphical 40.7 s, EP 52.1 s.
+HierarchicalFactor SUCCESS=25 with no BAD_PROJECTION or FAILURE. Column times (first of the three
+runs): leg A graphical 19.0 s, EP 1.3 s; leg B graphical 26.9 s, EP 46.4 s.
 
 __Status__
 
 Curated into the smoke gate on 2026-09-30 (PyAutoFit#1654 / #1656): with the moments projection
-every autofit-EP cell passes, and a FAIL on the EP column is a regression. The graphical column is
-an unseeded `DynestyStatic` fit. In six runs on 2026-09-30 the script exited 1 twice, both times with
-the EP column green; the one miss inspected was the graphical sigma cell (6.2453 +/- 2.5735, a 0.111
-against 0.10). A lone graphical-column miss is sampler noise to re-run, not an EP regression.
-Tolerances are not loosened for it, and seeding or re-budgeting the joint fit is a CI-speed / flake
-follow-up.
+every autofit-EP cell passes, and a FAIL on any column is a regression. The graphical column is
+seeded and therefore deterministic, so its cells no longer pass or fail on sampler noise. Its
+tolerances are unchanged.
 
 __Env__ (Developer Only)
 

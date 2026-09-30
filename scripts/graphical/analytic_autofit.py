@@ -66,6 +66,7 @@ its scale-collapse / stale-factor warnings); both read the run's `output_dir(nam
 
 import csv
 import logging
+import random
 import shutil
 from collections import Counter
 from pathlib import Path
@@ -202,13 +203,32 @@ def read_ep_posteriors(result, priors):
     return out
 
 
-def run_joint_fit(factor_graph, name, **kwargs):
+class SeededDynestyStatic(af.DynestyStatic):
     """
-    A `DynestyStatic` fit of `factor_graph.global_prior_model`. Previous output of the search is removed
-    first: resuming a completed run loads a samples summary rather than the samples the parity needs.
+    `af.DynestyStatic` with dynesty's own generator seeded (`rstate`), so a parity cell that sits near
+    its tolerance gives the same answer on every run instead of passing or failing on sampler noise.
+    `af.DynestyStatic` exposes no seed, so the generator is added to the sampler constructor kwargs.
+    """
+
+    def __init__(self, *args, seed=0, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.seed = seed
+
+    @property
+    def search_kwargs(self):
+        return {**super().search_kwargs, "rstate": np.random.default_rng(self.seed)}
+
+
+def run_joint_fit(factor_graph, name, seed=0, **kwargs):
+    """
+    A seeded `DynestyStatic` fit of `factor_graph.global_prior_model`. Previous output of the search is
+    removed first: resuming a completed run loads a samples summary rather than the samples the parity
+    needs. `random` and `numpy.random` are seeded too, for the initializer's live-point draws.
     """
     shutil.rmtree(output_dir(name).parent, ignore_errors=True)
-    search = af.DynestyStatic(path_prefix="graphical", name=name, **kwargs)
+    random.seed(seed)
+    np.random.seed(seed)
+    search = SeededDynestyStatic(path_prefix="graphical", name=name, seed=seed, **kwargs)
     return search.fit(model=factor_graph.global_prior_model, analysis=factor_graph)
 
 
