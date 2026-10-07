@@ -228,7 +228,9 @@ def run_joint_fit(factor_graph, name, seed=0, **kwargs):
     shutil.rmtree(output_dir(name).parent, ignore_errors=True)
     random.seed(seed)
     np.random.seed(seed)
-    search = SeededDynestyStatic(path_prefix="graphical", name=name, seed=seed, **kwargs)
+    search = SeededDynestyStatic(
+        path_prefix="graphical", name=name, seed=seed, **kwargs
+    )
     return search.fit(model=factor_graph.global_prior_model, analysis=factor_graph)
 
 
