@@ -47,8 +47,8 @@ form and EP); `median_pdf` +/- the averaged `errors_at_sigma(1.0)` is printed as
 On leg B's skewed sigma posterior the median sits 0.2 reference-std below the mean by construction
 (q50 = 6.0 vs E = 6.6 on seed 0), which is not a sampler error.
 
-The joint fit is seeded (`analytic_autofit.SeededDynestyStatic`, dynesty `rstate` plus `random` /
-`numpy.random` for the initializer, seed 0), so the column is the same on every run. Unseeded, its
+The joint fit is seeded (`af.DynestyStatic(seed=0)`: the search-level seed seeds dynesty's `rstate`
+and the initializer), so the column is the same on every run. Unseeded, its
 leg-B sigma cell passed or failed on sampler noise: in six unseeded runs on 2026-09-30 the script
 exited 1 twice, with the EP column green both times. The one miss inspected was sigma
 6.2453 +/- 2.5735, a 0.111 against 0.10.
