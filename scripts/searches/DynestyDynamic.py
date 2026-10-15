@@ -87,7 +87,7 @@ We manually specify all of the Dynesty settings, descriptions of which are provi
 search = af.DynestyDynamic(
     path_prefix="searches",
     name="DynestyDynamic",
-    nlive=50,
+    nlive_init=50,
     bound="multi",
     sample="auto",
     bootstrap=None,
@@ -138,6 +138,6 @@ Internally, *PyAutoFit** makes the paths a `NullPath` object.
 
 This test checks that the search runs in this mode and that no results are written to hard-disk.
 """
-search = af.DynestyDynamic(nlive=50, maxcall=500)
+search = af.DynestyDynamic(nlive_init=50, maxcall=500)
 
 result = search.fit(model=model, analysis=analysis)
