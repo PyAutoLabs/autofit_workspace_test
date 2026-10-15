@@ -183,6 +183,10 @@ def stamp_results(
         shutil.copytree(template_leaf, destination)
         search_dict["arguments"]["unique_tag"] = dataset_name
         (destination / "files" / "search.json").write_text(json.dumps(search_dict))
+        # The template's persisted `.identifier` would re-key every copy to the
+        # template's identity (SearchOutput.id prefers it since PyAutoFit#1686);
+        # drop it so the identifier is recomputed from the rewritten unique_tag.
+        (destination / ".identifier").unlink(missing_ok=True)
         if zip_results:
             _zip_directory(destination)
 
