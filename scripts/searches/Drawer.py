@@ -56,14 +56,12 @@ analysis = af.ex.Analysis(data=data, noise_map=noise_map, use_jax=False)
 """
 __Search__
 
-Run ``Drawer`` with a ``name`` and ``path_prefix`` so results are written to
-``output/searches/Drawer``. ``Drawer`` is not run with ``NullPaths`` here because
-its ``_fit`` reads ``self.timer.time``, and the timer is ``None`` under
-``NullPaths``.
+Run ``Drawer`` with ``NullPaths`` (no ``name`` / ``path_prefix``) so nothing is
+written to disk.
 """
 total_draws = 50
 
-search = af.Drawer(path_prefix="searches", name="Drawer", total_draws=total_draws)
+search = af.Drawer(total_draws=total_draws)
 
 result = search.fit(model=model, analysis=analysis)
 
