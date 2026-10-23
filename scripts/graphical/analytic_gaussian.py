@@ -59,7 +59,7 @@ hierarchical `GaussianPrior` distribution is instantiated per call), so the budg
 number of calls: `sample="unif"` with `bound="multi", bootstrap=0` converges in ~7-10k calls per
 leg (37 s / 50 s locally); the default bootstrap enlargement needs ~20k calls on leg B for the same
 posterior. Every column prints its wall time; the script runs in ~85-130 s locally against the 300 s
-CI cap (the moments-projection EP column is 34-52 s of it on leg B).
+CI cap (the moments-projection EP column is 34-52 s of it on leg B; the seed-140 leg below adds ~4 s).
 
 __Why the EP column runs `projection="moments"`__
 
@@ -109,6 +109,22 @@ b <= 0.010; the sigma message is a `TruncatedNormalMessage` with its limits (0, 
 HierarchicalFactor SUCCESS=25 with no BAD_PROJECTION or FAILURE. Column times (first of the three
 runs): leg A graphical 19.0 s, EP 1.3 s; leg B graphical 26.9 s, EP 46.4 s.
 
+__Leg A, seed 140: a factor that converges without taking a step (PyAutoFit#1711)__
+
+The 200-seed ensemble of the science project `analytic_gaussian` (Cortex ruling R-20260910-04) found
+one leg-A seed, 140, on which a factor ended the EP run with no SUCCESS update: the prior factor on
+mu, `{NO_CHANGE: 2}`. On that dataset the posterior mean of mu (50.0018) lands within 2e-3 of the
+prior's mean (50), so on the prior factor's first visit the start point of its Laplace optimiser is
+already the mode of its tilted density to within the gradient tolerance (|g| 6.0e-6 < 1e-5): it stops
+at `iter=0` and is flagged NO_CHANGE. That is convergence, not a skip -- the projection is accepted
+and the message still moves (its curvature is recomputed at the mode: N(50, 22.4) -> N(50.0, 10.0)),
+and mu matches the closed form to a = 6e-5, b = 2e-5. The last section pins that case: the EP
+column alone on seed 140, leg A, judged against the closed form row by row (widths included) at the
+leg-A tolerance, plus two flag-health checks -- every factor ends the run with at least one SUCCESS
+or only accepted zero-iteration NO_CHANGE updates (`updated` true on every one of its
+`ep_history.csv` rows), and the library's STALE FACTORS warning did not fire (neither logged nor
+written to `ep_diagnostics.results`).
+
 __Status__
 
 Curated into the smoke gate on 2026-09-30 (PyAutoFit#1654 / #1656): with the moments projection
@@ -124,8 +140,11 @@ midpoint vector and fake the column.
 ENV: real_search
 """
 
+import csv
+import logging
 import sys
 import time
+from collections import defaultdict
 
 import numpy as np
 
@@ -136,7 +155,9 @@ from analytic_autofit import (
     MU_PRIOR,
     build_factor_graph,
     effective_statistics,
+    ep_diagnostics_text,
     ep_flag_summary,
+    output_dir,
     parity_table,
     read_ep_posteriors,
     read_joint_posteriors,
@@ -383,6 +404,108 @@ print(f"  [info] autofit EP flags: {ep_flag_summary('analytic_gaussian_leg_b')}"
 print(
     "  runtimes: "
     + ", ".join(f"{k[2:]} {v:.1f}s" for k, v in timings.items() if k.startswith("B "))
+)
+
+"""
+__Leg A, seed 140: zero-iteration convergence (PyAutoFit#1711)__
+
+The EP column only (the closed form is the reference; the other columns are the seed-0 legs' job).
+`STALE FACTORS` warnings are logged by the EP optimiser at the end of the run, so a handler on its
+logger records whether one fired.
+"""
+SEED_140 = 140
+
+
+class _WarningRecorder(logging.Handler):
+    def __init__(self):
+        super().__init__(level=logging.WARNING)
+        self.messages = []
+
+    def emit(self, record):
+        self.messages.append(record.getMessage())
+
+
+def ep_history_rows(name):
+    """{factor: [(flag, updated), ...]} from the run's `ep_history.csv`."""
+    files = list(output_dir(name).rglob("ep_history.csv"))
+    assert files, f"ep_history.csv not found for {name}"
+    rows = defaultdict(list)
+    with open(files[0]) as f:
+        for row in csv.DictReader(f):
+            rows[row["factor"]].append((row["flag"], row["updated"] == "True"))
+    return rows
+
+
+sim_140 = simulate(seed=SEED_140)
+ybar_140, v_140 = effective_statistics(sim_140)
+
+t0 = time.time()
+ref_140 = leg_a_reference(ybar_140, v_140, SIGMA_TRUE, m0=MU_PRIOR[0], t0=MU_PRIOR[1])
+timings["A140 closed form"] = time.time() - t0
+
+factor_graph_140, hf_140, models_140 = build_factor_graph(
+    sim_140, drawn_prior, dict(mean=mu_prior(), sigma=SIGMA_TRUE)
+)
+priors_140 = {"mu": hf_140.mean, **{f"x_{i}": m.x for i, m in enumerate(models_140)}}
+
+recorder = _WarningRecorder()
+ep_logger = logging.getLogger("autofit.graphical.expectation_propagation.optimiser")
+ep_logger.addHandler(recorder)
+t0 = time.time()
+try:
+    ep_result_140 = run_autofit_ep(
+        factor_graph_140, "analytic_gaussian_leg_a_seed140", seed=SEED_140, **EP_KWARGS
+    )
+finally:
+    ep_logger.removeHandler(recorder)
+ep_140 = read_ep_posteriors(ep_result_140, priors_140)
+timings["A140 autofit EP"] = time.time() - t0
+
+history_140 = ep_history_rows("analytic_gaussian_leg_a_seed140")
+zero_iteration_only = sorted(
+    factor
+    for factor, rows in history_140.items()
+    if rows and all(flag == "NO_CHANGE" for flag, _ in rows)
+)
+unhealthy = sorted(
+    factor
+    for factor, rows in history_140.items()
+    if not any(flag == "SUCCESS" for flag, _ in rows)
+    and not (factor in zero_iteration_only and all(updated for _, updated in rows))
+)
+stale_logged = [m for m in recorder.messages if "STALE FACTORS" in m]
+stale_written = "STALE FACTORS" in ep_diagnostics_text("analytic_gaussian_leg_a_seed140")
+
+rows_140 = [("mu", ref_140["mu_mean"], ref_140["mu_std"])] + [
+    (r, ref_140["x_mean"][i], ref_140["x_std"][i]) for i, r in enumerate(x_rows)
+]
+p, n = parity_table(
+    rows_140,
+    {"autofit EP": ep_140},
+    tolerance_for("A"),
+    f"Leg A, seed {SEED_140} (PyAutoFit#1711): mean +/- std, a = |dmean|/std_ref, b = |std/std_ref - 1|",
+    extra_checks=[
+        (
+            "flag health: every factor has >= 1 SUCCESS or only accepted (updated) NO_CHANGE updates"
+            + (f" -- failing: {', '.join(unhealthy)}" if unhealthy else ""),
+            not unhealthy,
+        ),
+        (
+            "library STALE FACTORS warning absent (log and ep_diagnostics.results)",
+            not stale_logged and not stale_written,
+        ),
+    ],
+    hard_cap_std_error=HARD_CAP_STD_ERROR,
+)
+passed_total += p
+cells_total += n
+print(
+    f"  [info] zero-iteration-only (accepted NO_CHANGE) factors: {', '.join(zero_iteration_only) or 'none'}"
+)
+print(f"  [info] autofit EP flags: {ep_flag_summary('analytic_gaussian_leg_a_seed140')}")
+print(
+    "  runtimes: "
+    + ", ".join(f"{k[5:]} {v:.1f}s" for k, v in timings.items() if k.startswith("A140 "))
 )
 
 """
