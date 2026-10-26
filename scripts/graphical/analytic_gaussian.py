@@ -526,7 +526,9 @@ unhealthy = sorted(
     and not (factor in zero_iteration_only and all(updated for _, updated in rows))
 )
 stale_logged = [m for m in recorder.messages if "STALE FACTORS" in m]
-stale_written = "STALE FACTORS" in ep_diagnostics_text("analytic_gaussian_leg_a_seed140")
+stale_written = "STALE FACTORS" in ep_diagnostics_text(
+    "analytic_gaussian_leg_a_seed140"
+)
 
 rows_140 = [("mu", ref_140["mu_mean"], ref_140["mu_std"])] + [
     (r, ref_140["x_mean"][i], ref_140["x_std"][i]) for i, r in enumerate(x_rows)
@@ -554,10 +556,14 @@ cells_total += n
 print(
     f"  [info] zero-iteration-only (accepted NO_CHANGE) factors: {', '.join(zero_iteration_only) or 'none'}"
 )
-print(f"  [info] autofit EP flags: {ep_flag_summary('analytic_gaussian_leg_a_seed140')}")
+print(
+    f"  [info] autofit EP flags: {ep_flag_summary('analytic_gaussian_leg_a_seed140')}"
+)
 print(
     "  runtimes: "
-    + ", ".join(f"{k[5:]} {v:.1f}s" for k, v in timings.items() if k.startswith("A140 "))
+    + ", ".join(
+        f"{k[5:]} {v:.1f}s" for k, v in timings.items() if k.startswith("A140 ")
+    )
 )
 
 """
@@ -642,7 +648,9 @@ passed_total += p
 cells_total += n
 for line in named_written:
     print(f"  [info] {line[:160]}")
-print(f"  [info] autofit EP flags: {ep_flag_summary('analytic_gaussian_leg_b_seed25_mode')}")
+print(
+    f"  [info] autofit EP flags: {ep_flag_summary('analytic_gaussian_leg_b_seed25_mode')}"
+)
 print(f"  runtimes: autofit EP (mode) {timings['B25 autofit EP (mode)']:.1f}s")
 
 """
