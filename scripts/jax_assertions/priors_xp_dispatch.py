@@ -34,7 +34,6 @@ from autofit.messages.normal import NormalMessage
 from autofit.messages.truncated_normal import TruncatedNormalMessage
 from autofit.mapper.prior_model.collection import Collection
 
-
 UNITS = [0.05, 0.2, 0.5, 0.75, 0.95]
 
 

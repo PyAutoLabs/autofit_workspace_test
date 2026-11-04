@@ -34,7 +34,6 @@ __Contents__
 import autofit as af
 from autofit import exc
 
-
 """
 __Setup__
 
