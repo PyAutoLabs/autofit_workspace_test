@@ -133,9 +133,14 @@ def run_search(path_prefix):
     One `fit`. Resumes automatically when a `search_internal` checkpoint is
     already present, which is what makes re-invoking this the resume arm.
 
-    `iterations_per_full_update=2` so checkpoints are written *during* the run —
-    the default single-chunk cadence only checkpoints at the end, and a mid-run
-    kill would then leave nothing to resume from.
+    `iterations_per_full_update=100` so a checkpoint is written *during* the
+    run — the default single-chunk cadence only checkpoints at the end, and a
+    mid-run kill would then leave nothing to resume from. 100 is a realistic
+    user cadence: the search converges early (around step 140), so the step-100
+    checkpoint is the one mid-run checkpoint, and by then both NaN counters are
+    already non-zero. Each full update also writes the samples, summary and
+    visuals, so a much smaller cadence makes this script pay for hundreds of
+    full updates (it reached the 300s smoke cap at a cadence of 2).
     """
     search = af.MultiStartAdam(
         path_prefix=path_prefix,
@@ -143,7 +148,7 @@ def run_search(path_prefix):
         n_starts=12,
         n_steps=400,
         learning_rate=0.05,
-        iterations_per_full_update=2,
+        iterations_per_full_update=100,
         resurrect=False,
     )
     search.fit(model=model, analysis=analysis)
