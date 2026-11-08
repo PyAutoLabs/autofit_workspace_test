@@ -32,3 +32,13 @@ overrides:
       PYAUTO_TEST_MODE: "1"
   # jax_assertions/, searches/BlackJAXNUTS and searches/MultiStartAdam migrated
   # to in-file `# ENV:` declarations (jax / real_search jax) — #187 Stage 2.
+  # graphical/analytic_gaussian.py declares `real_search`, so its graphical
+  # column runs two real DynestyStatic searches, and the in-run status record
+  # renders anesthetic corner plots for each of them. The script asserts a
+  # numeric parity table (53 cells); no cell reads a plot, and search
+  # visualization is covered by scripts/searches/*. Skipping the plots keeps
+  # every assertion and its tolerance unchanged. Measured locally on py3.12:
+  # 44.5s -> 27.1s, PARITY: PASS (53/53) both ways.
+  - pattern: "graphical/analytic_gaussian.py"
+    set:
+      PYAUTO_SKIP_VISUALIZATION: "1"
