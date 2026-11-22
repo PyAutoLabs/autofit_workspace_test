@@ -126,22 +126,13 @@ or only accepted zero-iteration NO_CHANGE updates (`updated` true on every one o
 `ep_history.csv` rows), and the library's STALE FACTORS warning did not fire (neither logged nor
 written to `ep_diagnostics.results`).
 
-__Leg B, seed 25, mode projection: a non-finite evidence term is named (PyAutoFit#1713)__
+__Leg B, seed 25, mode projection: finite evidence in the tail (PyAutoFit#1790)__
 
-The same ensemble found that seeds 25 and 172, run with the library-default `projection="mode"`,
-printed numpy's `RuntimeWarning: invalid value encountered in add` from `EPMeanField.log_evidence`
-over and over. One hierarchical member's message to sigma is a `TruncatedNormalMessage` centred far
-below its support (mean -7374, sigma 384 on [0, 100] for seed 25); its truncation mass
-`Phi(b) - Phi(a)` evaluates to 1 - 1 = 0, so its log-partition is -inf, sigma's variable evidence
-is +inf and every adjacent factor term -inf, and the sum is NaN. The posteriors are bit-identical
-with and without it -- only the evidence readout is affected -- and the moments projection never
-produces that message. The library now returns the NaN explicitly, names the term once in a log
-warning and in `ep_diagnostics.results` (`evidence_nonfinite: ...`), and emits no numpy warning.
-
-Every EP column of this script is therefore checked for no `RuntimeWarning` from `ep_mean_field.py`
-and a finite final `log_evidence`; the last section runs seed 25 leg B under the mode projection
-(EP column only, no parity cells -- the mode projection is not the benchmarked one) and checks that
-the evidence is either finite or NaN with the sigma variable named in the log and the results file.
+The ensemble found that mode projection on seeds 25 and 172 can send the hierarchical scatter a
+truncated-normal message centred far below its support (mean -7374, sigma 384 on [0, 100] for seed
+25). Direct CDF subtraction rounded the mass to zero, producing a NaN evidence readout. The
+library now computes the truncation mass in log space. Seed 25 leg B checks that the evidence
+is finite after each update and at the end of the run, with no non-finite evidence diagnostic.
 
 __Status__
 
@@ -477,15 +468,12 @@ class _WarningRecorder(logging.Handler):
         self.messages.append(record.getMessage())
 
 
-def ep_history_rows(name):
-    """{factor: [(flag, updated), ...]} from the run's `ep_history.csv`."""
+def read_ep_history(name):
+    """Read the factor update rows from the run's `ep_history.csv`."""
     files = list(output_dir(name).rglob("ep_history.csv"))
     assert files, f"ep_history.csv not found for {name}"
-    rows = defaultdict(list)
     with open(files[0]) as f:
-        for row in csv.DictReader(f):
-            rows[row["factor"]].append((row["flag"], row["updated"] == "True"))
-    return rows
+        return list(csv.DictReader(f))
 
 
 sim_140 = simulate(seed=SEED_140)
@@ -513,7 +501,9 @@ finally:
 ep_140 = read_ep_posteriors(ep_result_140, priors_140)
 timings["A140 autofit EP"] = time.time() - t0
 
-history_140 = ep_history_rows("analytic_gaussian_leg_a_seed140")
+history_140 = defaultdict(list)
+for row in read_ep_history("analytic_gaussian_leg_a_seed140"):
+    history_140[row["factor"]].append((row["flag"], row["updated"] == "True"))
 zero_iteration_only = sorted(
     factor
     for factor, rows in history_140.items()
@@ -567,18 +557,15 @@ print(
 )
 
 """
-__Leg B, seed 25, mode projection: a non-finite evidence term is named (PyAutoFit#1713)__
+__Leg B, seed 25, mode projection: finite evidence in the tail (PyAutoFit#1790)__
 
-The EP column only, under the library-default `projection="mode"` that the ensemble ran. Whether the
-degenerate sigma message appears depends on the process history (prior ids), so the check accepts a
-finite evidence, or a NaN one whose sigma variable is named by the library's `ep_mean_field` log
-warning and in `ep_diagnostics.results`. Either way no numpy `RuntimeWarning` may come from
-`ep_mean_field.py`.
+Run the EP column under the library-default `projection="mode"` used by the ensemble.
 """
 SEED_25 = 25
+NAME_25 = "analytic_gaussian_leg_b_seed25_mode"
 
 sim_25 = simulate(seed=SEED_25)
-factor_graph_25, hf_25, models_25 = build_factor_graph(
+factor_graph_25, _, _ = build_factor_graph(
     sim_25,
     drawn_prior,
     dict(
@@ -591,66 +578,46 @@ factor_graph_25, hf_25, models_25 = build_factor_graph(
         ),
     ),
 )
-sigma_name_25 = hf_25.sigma.name
-
-evidence_recorder = _WarningRecorder()
-evidence_logger = logging.getLogger(
-    "autofit.graphical.expectation_propagation.ep_mean_field"
-)
-evidence_logger.addHandler(evidence_recorder)
 t0 = time.time()
-try:
-    with warnings.catch_warnings(record=True) as caught_25:
-        warnings.simplefilter("always")
-        ep_result_25 = run_autofit_ep(
-            factor_graph_25,
-            "analytic_gaussian_leg_b_seed25_mode",
-            seed=SEED_25,
-            projection="mode",
-            **EP_KWARGS,
-        )
-finally:
-    evidence_logger.removeHandler(evidence_recorder)
+with warnings.catch_warnings(record=True) as caught_25:
+    warnings.simplefilter("always")
+    ep_result_25 = run_autofit_ep(
+        factor_graph_25, NAME_25, seed=SEED_25, projection="mode", **EP_KWARGS
+    )
 timings["B25 autofit EP (mode)"] = time.time() - t0
 
 log_evidence_25 = ep_result_25.updated_ep_mean_field.log_evidence
 evidence_warnings_25 = ep_evidence_warnings(caught_25)
-named_logged = [
-    m for m in evidence_recorder.messages if "non-finite" in m and sigma_name_25 in m
+history_25 = read_ep_history(NAME_25)
+nonfinite_steps_25 = [
+    row["step"] for row in history_25 if not np.isfinite(float(row["log_evidence"]))
 ]
-diagnostics_25 = ep_diagnostics_text("analytic_gaussian_leg_b_seed25_mode")
-named_written = [
-    line
-    for line in diagnostics_25.splitlines()
-    if line.startswith("evidence_nonfinite:") and sigma_name_25 in line
-]
-evidence_ok_25 = bool(np.isfinite(log_evidence_25)) or bool(
-    named_logged and named_written
-)
+diagnostics_25 = ep_diagnostics_text(NAME_25)
 p, n = parity_table(
     [],
     {},
     tolerance_for("B"),
-    f"Leg B, seed {SEED_25}, projection='mode' (PyAutoFit#1713): EP evidence reporting",
+    f"Leg B, seed {SEED_25}, projection='mode' (PyAutoFit#1790): finite EP evidence",
     extra_checks=[
         (
             f"no RuntimeWarning from ep_mean_field.py ({len(evidence_warnings_25)})",
             not evidence_warnings_25,
         ),
         (
-            f"final log_evidence {log_evidence_25:.4f} finite, or NaN with '{sigma_name_25}' named "
-            f"(logged {len(named_logged)}, ep_diagnostics.results {len(named_written)})",
-            evidence_ok_25,
+            f"finite log_evidence on all {len(history_25)} updates and at the end "
+            f"({log_evidence_25:.4f}), non-finite steps: {nonfinite_steps_25}",
+            bool(history_25) and not nonfinite_steps_25 and np.isfinite(log_evidence_25),
+        ),
+        (
+            "ep_diagnostics.results contains no evidence_nonfinite warning",
+            diagnostics_25 != "ep_diagnostics.results not found"
+            and "evidence_nonfinite:" not in diagnostics_25,
         ),
     ],
 )
 passed_total += p
 cells_total += n
-for line in named_written:
-    print(f"  [info] {line[:160]}")
-print(
-    f"  [info] autofit EP flags: {ep_flag_summary('analytic_gaussian_leg_b_seed25_mode')}"
-)
+print(f"  [info] autofit EP flags: {ep_flag_summary(NAME_25)}")
 print(f"  runtimes: autofit EP (mode) {timings['B25 autofit EP (mode)']:.1f}s")
 
 """
