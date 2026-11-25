@@ -606,7 +606,9 @@ p, n = parity_table(
         (
             f"finite log_evidence on all {len(history_25)} updates and at the end "
             f"({log_evidence_25:.4f}), non-finite steps: {nonfinite_steps_25}",
-            bool(history_25) and not nonfinite_steps_25 and np.isfinite(log_evidence_25),
+            bool(history_25)
+            and not nonfinite_steps_25
+            and np.isfinite(log_evidence_25),
         ),
         (
             "ep_diagnostics.results contains no evidence_nonfinite warning",
